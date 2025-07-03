@@ -289,18 +289,52 @@ const prisma = new PrismaClient();
 
 
 exports.createWorkout = async (req, res) => {
-  const userId = parseInt(req.userToken.id);
-  const plan = req.body.plan;
-
-  if (!Array.isArray(plan) || plan.length === 0) {
-    return res.status(400).json({ status: 400, message: "Le champ 'plan' doit être un tableau non vide." });
-  }
-
   try {
+    // Vérification et debug de l'utilisateur
+    if (!req.userToken || !req.userToken.id) {
+      return res.status(401).json({
+        status: 401,
+        message: "Token d'authentification invalide - ID utilisateur manquant"
+      });
+    }
+
+    const userId = parseInt(req.userToken.id);
+    console.log("ID utilisateur depuis le token:", userId);
+    
+    // Vérifier que l'utilisateur existe dans la base de données
+    const existingUser = await prisma.user.findUnique({
+      where: { user_id: userId }
+    });
+    
+    if (!existingUser) {
+      return res.status(404).json({
+        status: 404,
+        message: `Utilisateur avec l'ID ${userId} n'existe pas dans la base de données`
+      });
+    }
+    
+    console.log("Utilisateur trouvé:", existingUser.username);
+    
+    const plan = req.body.plan;
+
+    if (!Array.isArray(plan) || plan.length === 0) {
+      return res.status(400).json({ 
+        status: 400, 
+        message: "Le champ 'plan' doit être un tableau non vide." 
+      });
+    }
+
     const createdWorkouts = [];
 
     for (const workout of plan) {
-      const { date, duration, calories_burned, details } = workout;
+      const { name, date, duration, calories_burned, details } = workout;
+
+      if (!details || !Array.isArray(details)) {
+        return res.status(400).json({
+          status: 400,
+          message: "Chaque workout doit avoir un tableau 'details' valide"
+        });
+      }
 
       // Préparation des détails
       const detailsData = details.map(detail => ({
@@ -328,6 +362,7 @@ exports.createWorkout = async (req, res) => {
       const newWorkout = await prisma.workout.create({
         data: {
           user_id: userId,
+          name: name || null,
           date: new Date(date),
           duration,
           calories_burned,
@@ -350,7 +385,7 @@ exports.createWorkout = async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Erreur lors de la création du workout:", err);
     return res.status(500).json({
       status: 500,
       message: err.message || "Erreur serveur lors de la création du plan d'entraînement"

@@ -42,6 +42,7 @@ model Profile {
 model Workout {
   workout_id      Int              @id @default(autoincrement())
   user_id         Int
+  name            String?          // Nom de la séance (optionnel)
   date            DateTime
   duration        Int // Duration in minutes
   calories_burned Int

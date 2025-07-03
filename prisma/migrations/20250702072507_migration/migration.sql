@@ -19,6 +19,7 @@ CREATE TABLE "Profile" (
     "age" INTEGER,
     "weight" DOUBLE PRECISION,
     "height" DOUBLE PRECISION,
+    "intensity" TEXT,
     "fitness_goal" TEXT,
     "goal_detail" TEXT,
 
