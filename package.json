@@ -10,7 +10,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "prestart": "npx prisma generate --schema=./prisma/schema.prisma && npx prisma migrate dev --name migration",
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
+    "dev": "nodemon src/app.js",
+    "prisma:generate": "cd ../prisma && npm run generate",
+    "prisma:migrate": "cd ../prisma && npm run migrate:dev",
+    "prisma:studio": "cd ../prisma && npm run studio"
   },
   "dependencies": {
     "@prisma/client": "^6.10.1",

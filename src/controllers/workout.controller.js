@@ -289,108 +289,71 @@ const prisma = new PrismaClient();
 
 
 exports.createWorkout = async (req, res) => {
-  try {
-    // Vérification et debug de l'utilisateur
-    if (!req.userToken || !req.userToken.id) {
-      return res.status(401).json({
-        status: 401,
-        message: "Token d'authentification invalide - ID utilisateur manquant"
-      });
-    }
-
+    const { date, duration, calories_burned, details, name } = req.body;
     const userId = parseInt(req.userToken.id);
-    console.log("ID utilisateur depuis le token:", userId);
     
-    // Vérifier que l'utilisateur existe dans la base de données
-    const existingUser = await prisma.user.findUnique({
-      where: { user_id: userId }
-    });
-    
-    if (!existingUser) {
-      return res.status(404).json({
-        status: 404,
-        message: `Utilisateur avec l'ID ${userId} n'existe pas dans la base de données`
-      });
-    }
-    
-    console.log("Utilisateur trouvé:", existingUser.username);
-    
-    const plan = req.body.plan;
-
-    if (!Array.isArray(plan) || plan.length === 0) {
-      return res.status(400).json({ 
-        status: 400, 
-        message: "Le champ 'plan' doit être un tableau non vide." 
-      });
-    }
-
-    const createdWorkouts = [];
-
-    for (const workout of plan) {
-      const { name, date, duration, calories_burned, details } = workout;
-
-      if (!details || !Array.isArray(details)) {
-        return res.status(400).json({
-          status: 400,
-          message: "Chaque workout doit avoir un tableau 'details' valide"
-        });
-      }
-
-      // Préparation des détails
-      const detailsData = details.map(detail => ({
-        sets: detail.sets,
-        reps: detail.reps,
-        weight: detail.weight,
-        exercise: {
-          connectOrCreate: {
-            where: {
-              name_goal_type: {
-                name: detail.exercise.name,
-                goal_type: detail.exercise.goal_type
-              }
-            },
-            create: {
-              name: detail.exercise.name,
-              description: detail.exercise.description,
-              video_url: detail.exercise.video_url || null,
-              goal_type: detail.exercise.goal_type
+    try {
+        // Mapping des détails pour Prisma avec les champs de suivi
+        const detailsData = details?.map(detail => ({
+            sets: detail.sets,
+            reps: detail.reps,
+            weight: detail.weight,
+            completed: detail.completed ?? false,
+            completed_sets: detail.completed_sets ?? 0,
+            completed_reps: detail.completed_reps ?? 0,
+            completed_weight: detail.completed_weight ?? 0,
+            exercise: {
+                connectOrCreate: {
+                    where: {
+                        name_goal_type: {
+                            name: detail.exercise.name,
+                            goal_type: detail.exercise.goal_type
+                        }
+                    },
+                    create: {
+                        name: detail.exercise.name,
+                        description: detail.exercise.description,
+                        video_url: detail.exercise.video_url,
+                        goal_type: detail.exercise.goal_type
+                    }
+                }
             }
-          }
-        }
-      }));
+        })) || [];
 
-      const newWorkout = await prisma.workout.create({
-        data: {
-          user_id: userId,
-          name: name || null,
-          date: new Date(date),
-          duration,
-          calories_burned,
-          details: {
-            create: detailsData
-          }
-        },
-        include: {
-          details: { include: { exercise: true } }
-        }
-      });
+        const newWorkout = await prisma.workout.create({
+            data: {
+                user_id: userId,
+                name,
+                date: new Date(date),
+                duration,
+                calories_burned,
+                details: {
+                    create: detailsData
+                }
+            },
+            include: {
+                details: {
+                    include: {
+                        exercise: true
+                    }
+                },
+                user: true
+            }
+        });
 
-      createdWorkouts.push(newWorkout);
+        return res.status(201).json({
+            status: 201,
+            message: "Workout created successfully",
+            data: newWorkout,
+        });
+
+    } catch (err) {
+        console.error('Erreur création workout:', err);
+        return res.status(500).json({
+            status: 500,
+            message: err.message || "Erreur lors de la création du workout",
+        });
     }
-
-    return res.status(201).json({
-      status: 201,
-      message: "Plan d'entraînement créé avec succès.",
-      data: createdWorkouts
-    });
-
-  } catch (err) {
-    console.error("Erreur lors de la création du workout:", err);
-    return res.status(500).json({
-      status: 500,
-      message: err.message || "Erreur serveur lors de la création du plan d'entraînement"
-    });
-  }
 };
 
 
