@@ -126,11 +126,12 @@
 
 const express = require("express");
 const router = express.Router();
-
-const registerController = require("../controllers/register.controller");
 const loginController = require("../controllers/login.controller");
+const registerController = require("../controllers/register.controller");
+const checkJWT = require("../middlewares/checkJWT");
 
-router.post("/register", registerController.register);
 router.post("/login", loginController.login);
+router.post("/register", registerController.register);
+router.post("/logout", checkJWT, loginController.logout);
 
 module.exports = router;
