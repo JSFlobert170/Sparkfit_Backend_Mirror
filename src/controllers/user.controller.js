@@ -239,7 +239,7 @@ exports.getMe = async (req, res, next) => {
         where: { user_id: parseInt(id) },
         include: {
           profile: true,
-          workouts: true,
+          //workouts: true,
         } 
       });
       if (!user) {
