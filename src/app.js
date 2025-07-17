@@ -55,7 +55,7 @@ module.exports = app;
 
 // Démarrer le serveur seulement si ce n'est pas un import pour les tests
 if (require.main === module) {
-    app.listen(process.env.PORT || 3000, () => {
-        logger.info(`Server is running on http://localhost:${process.env.PORT || 3000}`);
-    });
+app.listen(process.env.PORT || 3000, () => {
+    logger.info(`Server is running on http://localhost:${process.env.PORT || 3000}`);
+});
 }

@@ -3,13 +3,24 @@ const prisma = new PrismaClient();
 const { workoutMetrics } = require('../metrics/workoutMetrics');
 
 exports.createWorkout = async (req, res) => {
-    const userId = parseInt(req.userToken.id);
+    const userId = Number(req.userToken.id);
     const startTime = process.hrtime();
     
-    // Incrémenter le compteur de requêtes actives
-    workoutMetrics.activeRequests.inc({ endpoint: '/api/workouts' });
-
+    console.log('Creating workout for user ID:', userId, 'Type:', typeof userId);
+    
     try {
+        // Vérifier si l'utilisateur existe
+        const user = await prisma.User.findUnique({
+            where: { user_id: userId }
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                status: 404,
+                message: "User not found"
+            });
+        }
+
         // Vérifier si nous recevons un plan IA
         if (req.body.plan && Array.isArray(req.body.plan)) {
             console.log("Processing AI generated plan");
@@ -43,7 +54,7 @@ exports.createWorkout = async (req, res) => {
                     }
                 })) || [];
 
-                const createdWorkout = await prisma.workout.create({
+                return await prisma.Workout.create({
                     data: {
                         user_id: userId,
                         name: workout.name,
@@ -62,23 +73,12 @@ exports.createWorkout = async (req, res) => {
                         }
                     }
                 });
-
-                // Métriques après la création réussie
-                // workoutMetrics.creationTotal.inc();
-                // if (workout.duration) {
-                //     workoutMetrics.duration.observe(workout.duration);
-                // }
-                // if (workout.calories_burned) {
-                //     workoutMetrics.caloriesBurned.observe(workout.calories_burned);
-                // }
-
-                return createdWorkout;
             }));
 
             return res.status(201).json({
                 status: 201,
                 message: "Plan d'entraînement créé avec succès",
-                data: createdWorkouts
+                data: createdWorkouts[0]
             });
         }
 
@@ -88,7 +88,7 @@ exports.createWorkout = async (req, res) => {
         if (!date || !name) {
             return res.status(400).json({
                 status: 400,
-                message: "La date et le nom du workout sont requis",
+                message: "La date et le nom du workout sont requis"
             });
         }
 
@@ -118,7 +118,7 @@ exports.createWorkout = async (req, res) => {
             }
         })) || [];
 
-        const result = await prisma.workout.create({
+        const result = await prisma.Workout.create({
             data: {
                 user_id: userId,
                 name,
@@ -152,9 +152,6 @@ exports.createWorkout = async (req, res) => {
         const requestDuration = seconds + nanoseconds / 1e9;
         workoutMetrics.apiLatency.observe({ endpoint: '/api/workouts', method: 'POST' }, requestDuration);
 
-        // Décrémenter le compteur de requêtes actives
-        workoutMetrics.activeRequests.dec({ endpoint: '/api/workouts' });
-
         return res.status(201).json({
             status: 201,
             message: "Workout créé avec succès",
@@ -162,304 +159,235 @@ exports.createWorkout = async (req, res) => {
         });
 
     } catch (err) {
+        console.error('Erreur création workout:', err);
+        
         // Incrémenter le compteur d'erreurs
         workoutMetrics.apiErrors.inc({ 
             endpoint: '/api/workouts', 
             method: 'POST',
-            status: err.status || 500
+            status: 500
         });
 
-        // Décrémenter le compteur de requêtes actives
-        workoutMetrics.activeRequests.dec({ endpoint: '/api/workouts' });
-
-        console.error('Erreur création workout:', err);
         return res.status(500).json({
             status: 500,
-            message: "Erreur lors de la création du workout: " + err.message,
+            message: "Erreur lors de la création du workout: " + err.message
         });
     }
 };
 
-
-
-
-exports.getWorkouts = async (req, res, next) => {
+exports.getWorkouts = async (req, res) => {
     if (!req.userToken.admin) {
-        return res.json({
-          status: 400,
-          message: "Only admin can access",
+        return res.status(400).json({
+            status: 400,
+            message: "Only admin can access"
         });
-      }
+    }
     try {
-        const workouts = await prisma.workout.findMany({
+        const workouts = await prisma.Workout.findMany({
             include: {
                 details: {
-                  include: {
-                    exercise: true
-                  }
-                },
-                user: true
+                    include: {
+                        exercise: true
+                    }
+                }
             }
         });
-        if (!workouts) {
-            return res.json({
-              status: 404,
-              message: "Workouts not found",
-            });
-        }
-        return res.json({
+        
+        return res.status(200).json({
             status: 200,
             message: "Successfully retrieved all workouts",
             data: workouts
         });
     } catch (err) {
-        return res.json({
-            status: err.status,
-            message: err.message || "Bad request",
-        });
-    }
-};
-
-exports.getWorkoutById = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-    if (!id) {
-      return res.json({
-        status: 400,
-        message: "Id is required",
-      });
-    }
-    const workout = await prisma.workout.findUnique({
-      where: { workout_id: parseInt(id) },
-      include: {
-        details: {
-          include: {
-            exercise: true
-          }
-        },
-        // user: true
-        }
-    });
-    if (!workout) {
-      return res.json({
-        status: 404,
-        message: "Workout not found",
-      });
-  }
-      return res.json({
-        status  : 200,  
-        message : "Successfully retrieved Workout",
-        data : workout
-      });
-
-    } catch (err) {
-        return res.json({
-            status: err.status,
-            message: err.message || "Bad request",
-        });
-    }
-};
-
-exports.updateWorkout = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const userId = parseInt(req.userToken.id);
-        const { date, duration, calories_burned, details } = req.body;
-
-        if (!id) {
-            return res.json({
-                status: 400,
-                message: "Workout ID is required",
-            });
-        }
-
-        // Vérifier que le workout appartient à l'utilisateur
-        const existingWorkout = await prisma.workout.findUnique({
-            where: { workout_id: parseInt(id) },
-            include: { details: true }
-        });
-
-        if (!existingWorkout) {
-            return res.json({
-                status: 404,
-                message: "Workout not found",
-            });
-        }
-
-        if (existingWorkout.user_id !== userId && !req.userToken.admin) {
-            return res.json({
-                status: 401,
-                message: "Unauthorized to update this workout",
-            });
-        }
-
-        // Supprimer les anciens détails
-        await prisma.workout_Detail.deleteMany({
-            where: { workout_id: parseInt(id) }
-        });
-
-        // Préparer les nouveaux détails si fournis
-        let detailsData = [];
-        if (details && Array.isArray(details)) {
-            detailsData = details.map(detail => ({
-                workout_id: parseInt(id),
-                exercise_id: detail.exercise_id,
-                sets: detail.sets,
-                reps: detail.reps,
-                weight: detail.weight
-            }));
-        }
-
-        // Mettre à jour le workout
-        const updateData = {};
-        if (date) updateData.date = new Date(date);
-        if (duration) updateData.duration = duration;
-        if (calories_burned) updateData.calories_burned = calories_burned;
-
-        const updatedWorkout = await prisma.workout.update({
-            where: { workout_id: parseInt(id) },
-            data: updateData,
-            include: {
-                details: {
-                    include: {
-                        exercise: true
-                    }
-                }
-            }
-        });
-
-        // Créer les nouveaux détails
-        if (detailsData.length > 0) {
-            await prisma.workout_Detail.createMany({
-                data: detailsData
-            });
-        }
-
-        // Récupérer le workout final avec tous les détails
-        const finalWorkout = await prisma.workout.findUnique({
-            where: { workout_id: parseInt(id) },
-            include: {
-                details: {
-                    include: {
-                        exercise: true
-                    }
-                }
-            }
-        });
-
-        // Métriques pour le taux de complétion
-        const completedDetails = finalWorkout.details.filter(d => d.completed).length;
-        const totalDetails = finalWorkout.details.length;
-        if (totalDetails > 0) {
-            workoutMetrics.completionRate.set((completedDetails / totalDetails) * 100);
-        }
-
-        return res.json({
-            status: 200,
-            message: "Successfully updated workout",
-            data: finalWorkout
-        });
-
-    } catch (err) {
-        console.error('Update workout error:', err);
-        return res.json({
+        console.error('Get workouts error:', err);
+        return res.status(500).json({
             status: 500,
-            message: err.message || "Internal server error",
+            message: err.message || "Internal server error"
         });
     }
 };
 
-exports.deleteWorkout = async (req, res, next) => {
-    const { id } = req.params;
-    const userId = parseInt(req.userToken.id);
-    
-    if (!id) {
-        return res.json({
-            status: 400,
-            message: "Workout ID is required",
-        });
-    }
-
+exports.getUserWorkouts = async (req, res) => {
+    const userId = Number(req.userToken.id);
     try {
-        // Vérifier que le workout existe et appartient à l'utilisateur
-        const existingWorkout = await prisma.workout.findUnique({
-            where: { workout_id: parseInt(id) }
-        });
-
-        if (!existingWorkout) {
-            return res.json({
-                status: 404,
-                message: "Workout not found",
-            });
-        }
-
-        if (existingWorkout.user_id !== userId && !req.userToken.admin) {
-            return res.json({
-                status: 401,
-                message: "Unauthorized to delete this workout",
-            });
-        }
-
-        // Supprimer d'abord les détails du workout
-        const deletedWorkoutDetails = await prisma.workout_Detail.deleteMany({
-            where: { workout_id: parseInt(id) }
-        });
-
-        // Puis supprimer le workout
-        const deletedWorkout = await prisma.workout.delete({
-            where: { workout_id: parseInt(id) }
-        });
-
-        return res.json({
-            status: 200,
-            message: "Successfully deleted workout",
-            data: {
-                deletedWorkout,
-                deletedDetailsCount: deletedWorkoutDetails.count
-            }
-        });
-
-    } catch (err) {
-        console.error('Delete workout error:', err);
-        return res.json({
-            status: 500,
-            message: err.message || "Internal server error",
-        }); 
-    }
-};
-
-
-exports.getUserWorkouts = async (req, res, next) => {
-    const userId = parseInt(req.userToken.id);
-    try {
-        const workouts = await prisma.workout.findMany({
+        const workouts = await prisma.Workout.findMany({
             where: {
-                user_id: userId,
+                user_id: userId
             },
             include: {
                 details: {
-                  include: {
-                    exercise: true
-                  }
-                },
-                // user: true
+                    include: {
+                        exercise: true
+                    }
+                }
             }
         });
-        if (!workouts) {
-            return res.json({
-              status: 404,
-              message: "Workouts not found",
-            });
-        }
-        return res.json({
+        
+        return res.status(200).json({
             status: 200,
-            message: "Successfully retrieved all workouts",
+            message: "Successfully retrieved user workouts",
             data: workouts
         });
     } catch (err) {
-        return res.json({
-            status: err.status,
-            message: err.message || "Bad request",
+        console.error('Get user workouts error:', err);
+        return res.status(500).json({
+            status: 500,
+            message: err.message || "Internal server error"
+        });
+    }
+};
+
+exports.getWorkoutById = async (req, res) => {
+    try {
+        const workoutId = Number(req.params.id);
+        const userId = Number(req.userToken.id);
+
+        if (isNaN(workoutId)) {
+            return res.status(400).json({
+                status: 400,
+                message: "Invalid workout ID"
+            });
+        }
+
+        const workout = await prisma.Workout.findFirst({
+            where: { 
+                workout_id: workoutId,
+                user_id: userId
+            },
+            include: {
+                details: {
+                    include: {
+                        exercise: true
+                    }
+                }
+            }
+        });
+
+        if (!workout) {
+            return res.status(404).json({
+                status: 404,
+                message: "Workout not found"
+            });
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: "Successfully retrieved workout",
+            data: workout
+        });
+    } catch (err) {
+        console.error('Get workout by id error:', err);
+        return res.status(500).json({
+            status: 500,
+            message: err.message || "Internal server error"
+        });
+    }
+};
+
+exports.updateWorkout = async (req, res) => {
+    try {
+        const workoutId = Number(req.params.id);
+        const userId = Number(req.userToken.id);
+        const { name, duration, calories_burned } = req.body;
+
+        if (isNaN(workoutId)) {
+            return res.status(400).json({
+                status: 400,
+                message: "Invalid workout ID"
+            });
+        }
+
+        // Vérifier que le workout existe et appartient à l'utilisateur
+        const existingWorkout = await prisma.Workout.findFirst({
+            where: { 
+                workout_id: workoutId,
+                user_id: userId
+            }
+        });
+
+        if (!existingWorkout) {
+            return res.status(404).json({
+                status: 404,
+                message: "Workout not found"
+            });
+        }
+
+        // Mettre à jour le workout
+        const updatedWorkout = await prisma.Workout.update({
+            where: { 
+                workout_id: workoutId
+            },
+            data: {
+                name: name || existingWorkout.name,
+                duration: duration || existingWorkout.duration,
+                calories_burned: calories_burned || existingWorkout.calories_burned
+            },
+            include: {
+                details: {
+                    include: {
+                        exercise: true
+                    }
+                }
+            }
+        });
+
+        return res.status(200).json({
+            status: 200,
+            message: "Workout updated successfully",
+            data: updatedWorkout
+        });
+    } catch (err) {
+        console.error('Update workout error:', err);
+        return res.status(500).json({
+            status: 500,
+            message: err.message || "Internal server error"
+        });
+    }
+};
+
+exports.deleteWorkout = async (req, res) => {
+    try {
+        const workoutId = Number(req.params.id);
+        const userId = Number(req.userToken.id);
+
+        if (isNaN(workoutId)) {
+            return res.status(400).json({
+                status: 400,
+                message: "Invalid workout ID"
+            });
+        }
+
+        // Vérifier que le workout existe et appartient à l'utilisateur
+        const existingWorkout = await prisma.Workout.findFirst({
+            where: { 
+                workout_id: workoutId,
+                user_id: userId
+            }
+        });
+
+        if (!existingWorkout) {
+            return res.status(404).json({
+                status: 404,
+                message: "Workout not found"
+            });
+        }
+
+        // Supprimer les détails du workout d'abord
+        await prisma.Workout_Detail.deleteMany({
+            where: { workout_id: workoutId }
+        });
+
+        // Supprimer le workout
+        await prisma.Workout.delete({
+            where: { workout_id: workoutId }
+        });
+
+        return res.status(204).send();
+    } catch (err) {
+        console.error('Delete workout error:', err);
+        return res.status(500).json({
+            status: 500,
+            message: err.message || "Internal server error"
         });
     }
 };

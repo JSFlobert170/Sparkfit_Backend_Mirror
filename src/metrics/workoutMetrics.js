@@ -26,6 +26,29 @@ const workoutMetrics = {
         help: 'Nombre de requêtes actives',
         labelNames: ['endpoint'],
         registers: [register]
+    }),
+
+    // Compteur total de créations de workouts
+    creationTotal: new client.Counter({
+        name: 'sparkfit_workout_creation_total',
+        help: 'Nombre total de workouts créés',
+        registers: [register]
+    }),
+
+    // Histogramme des durées des workouts
+    duration: new client.Histogram({
+        name: 'sparkfit_workout_duration_minutes',
+        help: 'Distribution des durées des workouts en minutes',
+        buckets: [15, 30, 45, 60, 90, 120],
+        registers: [register]
+    }),
+
+    // Histogramme des calories brûlées
+    caloriesBurned: new client.Histogram({
+        name: 'sparkfit_workout_calories_burned',
+        help: 'Distribution des calories brûlées par workout',
+        buckets: [100, 200, 300, 400, 500, 750, 1000],
+        registers: [register]
     })
 };
 
