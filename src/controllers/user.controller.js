@@ -3,8 +3,8 @@ const prisma = new PrismaClient();
 
 exports.getAllUsers = async (req, res, next) => {
   if (!req.userToken.admin) {
-    return res.json({
-        code: 401,
+    return res.status(401).json({
+        status: 401,
         message: "Admin access required",
     });
   }
@@ -17,19 +17,19 @@ exports.getAllUsers = async (req, res, next) => {
       
     })
     if (!allUsers) {
-        return res.json({
+        return res.status(404).json({
           status: 404,
           message: "Users not found",
         });
     }
-    return res.json({
+    return res.status(200).json({
         status: 200,
         message: "Successfully retrieved all users",
         data: allUsers
     });
 } catch (err) {
-    return res.json({
-      status: err.status,
+    return res.status(500).json({
+      status: 500,
       message: err.message || "Bad request",
     });
 }
@@ -40,13 +40,13 @@ exports.getUser = async (req, res, next) => {
     const { id } = req.params;
     const userTokenId = req.userToken.id;
     if (!id || !userTokenId) {
-      return res.json({
+      return res.status(400).json({
         status: 400,
         message: "Id is required",
       });
     }
   if (id != req.userToken.id && req.userToken.admin != true) {
-    return res.json({
+    return res.status(401).json({
         status: 401,
         message: "Unauthorized",
     });
@@ -59,20 +59,20 @@ exports.getUser = async (req, res, next) => {
       }
     });
     if (!user) {
-      return res.json({
+      return res.status(404).json({
         status: 404,
         message: "User not found",
       });
   }
-      return res.json({
-        status  : 200,  
-        message : "Successfully retrieved user",
-        data : user
+      return res.status(200).json({
+        status: 200,  
+        message: "Successfully retrieved user",
+        data: user
       });
 
   } catch (err) {
-    return res.json({
-      status: err.status,
+    return res.status(500).json({
+      status: 500,
       message: err.message || "Bad request",
     });
   }
@@ -90,14 +90,14 @@ exports.updateUser = async (req, res, next) => {
     console.log(req.userToken)
 
     if (!id || !userTokenId || !req.body) {
-      return res.json({
+      return res.status(400).json({
         status: 400,
         message: "Id is required",
       });
     }
 
     if (id != req.userToken.id && req.userToken.admin != true) {
-      return res.json({
+      return res.status(401).json({
           status: 401,
           message: "Unauthorized",
       });
@@ -117,9 +117,9 @@ exports.updateUser = async (req, res, next) => {
     existingUserName = await prisma.user.findUnique({
       where: { username: username },
     });
-    if (existingUserName && id != req.userToken.id) return res.json({status: 409, message: "username already exists"});
+    if (existingUserName && id != req.userToken.id) return res.status(409).json({status: 409, message: "username already exists"});
     if ((existingUserByEmail || existingUserByPhone) && id != req.userToken.id) {
-      return res.json({
+      return res.status(409).json({
           status: 409,
           message: (existingUserByEmail ? "email" : "phone number") + " already exists",
           data: existingUserByEmail ? email : phone,
@@ -161,19 +161,19 @@ exports.updateUser = async (req, res, next) => {
         }
       });
       if (!updatedUser) {
-        return res.json({
+        return res.status(404).json({
           status: 404,
           message: "User is not found",
         });
       }
-      return res.json({
-        status  : 200,
-        message : "Successfully updated user",
-        data : updatedUser
+      return res.status(200).json({
+        status: 200,
+        message: "Successfully updated user",
+        data: updatedUser
       });
   } catch (err) {
-    return res.json({
-      status: err.status,
+    return res.status(500).json({
+      status: 500,
       message: err.message || "Bad request",
     });
   }
@@ -183,43 +183,54 @@ exports.deleteUser = async (req, res, next) => {
   const { id } = req.params;
   const userTokenId = req.userToken.id;
     if (!id || !userTokenId) {
-      return res.json({
+      return res.status(400).json({
         status: 400,
         message: "Id is required",
       });
     }
     if (id != req.userToken.id && req.userToken.admin != true) {
-      return res.json({
+      return res.status(401).json({
           status: 401,
           message: "Unauthorized",
       });
     }
     try {
-      const deletedUserWorkouts = await prisma.workout.deleteMany({
+      // Vérifier si l'utilisateur existe
+      const user = await prisma.user.findUnique({
         where: { user_id: parseInt(id) }
       });
-      const deletedUserProfile = await prisma.profile.delete({
-        where: { user_id: parseInt(id) }
-      });
-      const deletedUser = await prisma.user.delete({
-        where: { user_id: parseInt(id) }
-      });
-      if (!deletedUser) {
-        return res.json({
+
+      if (!user) {
+        return res.status(404).json({
           status: 404,
-          message: "User profile is not found",
+          message: "User not found",
         });
-    }
-      return res.json({
-        status  : 204,
-        message : "Successfully deleted user",
-        deleteUser : deletedUser,
-        deleteUserProfile : deletedUserProfile,
-        deleteUserWorkouts : deletedUserWorkouts
+      }
+
+      // Supprimer les workouts
+      await prisma.workout.deleteMany({
+        where: { user_id: parseInt(id) }
       });
+
+      // Supprimer le profil s'il existe
+      const profile = await prisma.profile.findFirst({
+        where: { user_id: parseInt(id) }
+      });
+      if (profile) {
+        await prisma.profile.delete({
+          where: { user_id: parseInt(id) }
+        });
+      }
+
+      // Supprimer l'utilisateur
+      await prisma.user.delete({
+        where: { user_id: parseInt(id) }
+      });
+
+      return res.status(204).send();
   } catch (err) {
-      return res.json({
-        status: err.status,
+      return res.status(500).json({
+        status: 500,
         message: err.message || "Bad request",
       });
   }
@@ -229,7 +240,7 @@ exports.getMe = async (req, res, next) => {
   try {
       const id = req.userToken.id;
       if (!id) {
-          return res.json({
+          return res.status(400).json({
             status: 400,
             message: "Id is required",
           });
@@ -243,21 +254,20 @@ exports.getMe = async (req, res, next) => {
         } 
       });
       if (!user) {
-          return res.json({
+          return res.status(404).json({
             status: 404,
             message: "User is not found",
           });
       }
-
-      return res.json({
+      return res.status(200).json({
         status: 200,
         message: "Successfully retrieved user",
-        data: user,
+        data: user
       });
   } catch (err) {
-    return res.json({
-      status: err.status,
-      message: err.message || "Bad request",
-    });
+      return res.status(500).json({
+        status: 500,
+        message: err.message || "Bad request",
+      });
   }
 };
