@@ -23,7 +23,6 @@ cache:
     - /node_modules/
 
 before_script:
-  - npm install
   - npm ci
 
 generate:
@@ -35,11 +34,14 @@ generate:
     - mkdir -p prisma
     - cp sparkfit_prisma-schema/schema.prisma prisma/
     - cp -r sparkfit_prisma-schema/migrations prisma/
+    - rm -rf sparkfit_prisma-schema
     - npx prisma generate --schema=prisma/schema.prisma
 
 test:
   stage: test
+  needs: [generate]
   script:
+    - ls -la node_modules/.prisma/client
     - npm test
 
 migrate:
