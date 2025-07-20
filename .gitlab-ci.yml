@@ -23,7 +23,10 @@ cache:
     - node_modules/
 
 before_script:
+  - apt-get update && apt-get install -y postgresql-client
   - npm ci
+  - until pg_isready -h postgres -p 5432 -U myuser; do echo "Waiting for postgres..."; sleep 2; done
+
 
 generate:
   stage: prepare
@@ -36,6 +39,8 @@ generate:
     - cp -r sparkfit_prisma-schema/migrations prisma/
     - rm -rf sparkfit_prisma-schema
     - npx prisma generate --schema=prisma/schema.prisma
+    - until pg_isready -h postgres -p 5432 -U myuser; do echo "Waiting for Postgres..."; sleep 2; done
+
 
 test:
   stage: test
@@ -43,7 +48,7 @@ test:
   variables:
     DATABASE_URL: $DATABASE_URL
   script:
-    - echo $DATABASE_URL
+    - echo DATABASE_URL
     - ls -la node_modules/.prisma/client
     - npm test
 
