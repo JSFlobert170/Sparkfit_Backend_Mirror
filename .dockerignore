@@ -1,4 +1,14 @@
+node_modules
+npm-debug.log
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+logs
+*.log
+coverage
 .DS_Store
 .git
-node_modules
-logs
+.gitignore
+README.md
