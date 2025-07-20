@@ -30,7 +30,6 @@ generate:
   script:
     - apk add --no-cache postgresql-client
     - until pg_isready -h postgres -p 5432 -U myuser; do echo "Waiting for Postgres..."; sleep 2; done
-    - psql -h postgres -U myuser -d mydatabase -f ./sparkfit_backend/init.sql
     - git clone https://JSFlobert:glpat-hQtGYoDCnKN97RZkMCUo@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
     - mkdir -p prisma
     - cp sparkfit_prisma-schema/schema.prisma prisma/
