@@ -29,11 +29,12 @@ before_script:
 generate:
   stage: prepare
   script:
+    - git clone https://JSFlobert:glpat-hQtGYoDCnKN97RZkMCUo@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
     - ls -la
     - ls -la ..
     - mkdir -p prisma
-    - cp ../sparkfit_prisma-schema/schema.prisma prisma/
-    - cp -r ../sparkfit_prisma-schema/migrations prisma/
+    - cp sparkfit_prisma-schema/schema.prisma prisma/
+    - cp -r sparkfit_prisma-schema/migrations prisma/
     - npx prisma generate --schema=prisma/schema.prisma
 
 test:
