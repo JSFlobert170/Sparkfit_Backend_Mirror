@@ -2,24 +2,19 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copier le package.json depuis le répertoire backend
-COPY sparkfit_backend/package*.json ./
+# Copier le package.json
+COPY package*.json ./
 
 RUN npm install
 
-# Copier le code source du backend
-COPY sparkfit_backend/ .
-
-# Copier le schéma Prisma depuis la racine
-COPY sparkfit_prisma-schema/schema.prisma ./prisma/schema.prisma
-COPY sparkfit_prisma-schema/migrations ./prisma/migrations
+# Copier le code source
+COPY . .
 
 # Générer le client Prisma
-RUN npx prisma generate --schema=./prisma/schema.prisma
+RUN npx prisma generate
 
-# Copier le script d'entrée et le rendre exécutable
-COPY sparkfit_backend/start.sh /app/start.sh
-RUN chmod +x /app/start.sh
+# Rendre le script d'entrée exécutable
+RUN chmod +x start.sh
 
 # Exposer le port sur lequel votre app va tourner
 EXPOSE 3000

@@ -7,6 +7,10 @@ variables:
   APP_NAME: "sparkfit-backend"
 
 test:
+  only:
+    - develop
+    - main
+    - pipeline
   stage: test
   image: $NODE_IMAGE
   services:
@@ -21,14 +25,10 @@ test:
     PORT: "3001"
   script:
     - echo "Debut des tests"
-    - echo "Repertoire actuel: $PWD"
-    - echo "Contenu du repertoire:"
-    - ls -la
-    - echo "Installation des dependances backend"
     - npm ci
     - echo "Generation client Prisma"
     - npx prisma generate
-    - echo "Attente de la base de donnees PostgreSQL"
+    - echo "Attente de PostgreSQL"
     - sleep 10
     - echo "Migrations"
     - npx prisma migrate deploy
@@ -41,6 +41,10 @@ test:
     expire_in: 1 week
 
 build:
+  only:
+    - develop
+    - main
+    - pipeline
   stage: build
   image: docker:20.10.16
   services:

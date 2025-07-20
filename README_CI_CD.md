@@ -1,124 +1,253 @@
-# �� Guide GitLab CI/CD - SparkFit Backend
+# 🚀 GitLab CI/CD - Guide Complet
 
 ## 📋 Qu'est-ce que GitLab CI/CD ?
 
-GitLab CI/CD est un système qui automatise les tests et le déploiement de votre code. C'est comme un assistant qui :
-- ✅ Teste votre code automatiquement
-- 🏗️ Construit votre application
-- 🚀 La déploie en ligne
+**CI/CD** signifie **Continuous Integration / Continuous Deployment** (Intégration Continue / Déploiement Continu).
 
-## 🔧 Configuration actuelle
+### 🔄 Intégration Continue (CI)
+- **Automatise les tests** à chaque push de code
+- **Détecte les bugs** rapidement
+- **Assure la qualité** du code
 
-### 📁 Fichier : `.gitlab-ci.yml`
+### 🚀 Déploiement Continu (CD)
+- **Déploie automatiquement** le code en production
+- **Réduit les erreurs** humaines
+- **Accélère les livraisons**
 
+## 🏗️ Structure de notre Pipeline
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│    TEST     │───▶│    BUILD    │───▶│   DEPLOY    │
+│             │    │             │    │             │
+│ • Tests     │    │ • Docker    │    │ • Staging   │
+│ • Migrations│    │ • Images    │    │ • Production│
+└─────────────┘    └─────────────┘    └─────────────┘
+```
+
+## 📁 Fichier `.gitlab-ci.yml`
+
+Ce fichier définit **TOUT** le processus automatisé :
+
+### 1️⃣ **Stages** (Étapes)
 ```yaml
 stages:
-  - test    # Étape 1 : Tests
-  - build   # Étape 2 : Construction Docker
+  - test      # 1. Tests unitaires
+  - build     # 2. Construction Docker
+  - deploy    # 3. Déploiement
 ```
 
-### 🎯 Étape 1 : Tests (`test`)
+### 2️⃣ **Jobs** (Tâches)
+Chaque stage contient des jobs qui s'exécutent en parallèle :
 
-**Objectif :** Vérifier que votre code fonctionne
+#### 🧪 **Job `test`**
+```yaml
+test:
+  stage: test
+  script:
+    - npm ci          # Installer les dépendances
+    - npm test        # Exécuter les tests
+```
 
-**Ce qui se passe :**
-1. 🐳 Lance un conteneur Node.js 18
-2. 🗄️ Démarre une base de données PostgreSQL
-3. 📦 Installe les dépendances backend
-4. 📦 Installe les dépendances Prisma
-5. 🔧 Génère le client Prisma
-6. 🗄️ Applique les migrations
-7. 🧪 Lance les tests
-8. 💾 Sauvegarde les rapports de couverture
+#### 🔨 **Job `build`**
+```yaml
+build:
+  stage: build
+  script:
+    - docker build -t sparkfit-backend:$CI_COMMIT_SHORT_SHA .
+```
 
-### 🏗️ Étape 2 : Construction (`build`)
+#### 🚀 **Job `deploy`**
+```yaml
+deploy_production:
+  stage: deploy
+  script:
+    - echo "Déploiement en production"
+  when: manual  # Déclenchement manuel
+```
 
-**Objectif :** Créer une image Docker de votre application
+## 🎯 Comment ça fonctionne ?
 
-**Ce qui se passe :**
-1. 🐳 Utilise Docker pour construire Docker
-2. 🏗️ Construit l'image avec le code actuel
-3. 🏷️ Tag l'image avec le numéro de commit
-4. 🧪 Teste que l'image fonctionne
-5. 💾 Sauvegarde les informations d'image
-
-## 🚀 Comment utiliser
-
-### 1. **Pousser du code :**
+### 1. **Déclenchement**
 ```bash
-git add .
-git commit -m "Ajout nouvelle fonctionnalité"
 git push origin develop
 ```
+⬇️
+GitLab détecte le push et lance automatiquement la pipeline
 
-### 2. **Voir les résultats :**
-- Allez sur GitLab
-- Cliquez sur "CI/CD" → "Pipelines"
-- Cliquez sur votre pipeline pour voir les détails
+### 2. **Exécution séquentielle**
+```
+test → build → deploy
+```
+- Si `test` échoue → Pipeline s'arrête
+- Si `test` réussit → `build` commence
+- Si `build` réussit → `deploy` commence
 
-### 3. **Comprendre les statuts :**
-- 🟢 **Succès** : Tout fonctionne
-- 🔴 **Échec** : Il y a un problème à corriger
-- 🟡 **En cours** : Le pipeline s'exécute
+### 3. **Environnements**
+- **`develop`** → Tests + Build + Staging
+- **`main`** → Tests + Build + Production (manuel)
 
-## 🔍 Variables d'environnement
+## 🔧 Variables d'environnement
 
-### Pour les tests :
-- `DATABASE_URL` : Connexion à la base de test
-- `NODE_ENV` : Environnement de test
-- `JWT_SECRET` : Clé secrète pour les tests
+### Variables GitLab (automatiques)
+```yaml
+$CI_COMMIT_SHORT_SHA    # Hash du commit (ex: a1b2c3d)
+$CI_PROJECT_DIR         # Chemin du projet
+$CI_COMMIT_REF_SLUG     # Nom de la branche
+```
 
-### Pour Docker :
-- `DOCKER_TLS_CERTDIR` : Certificats Docker
-- `DOCKER_HOST` : Connexion au daemon Docker
+### Variables personnalisées
+```yaml
+variables:
+  DOCKER_IMAGE: node:18-alpine
+  IMAGE_NAME: sparkfit-backend
+  DATABASE_URL: "postgresql://..."
+```
 
-## 📊 Cache
+## 🐳 Docker dans GitLab CI
 
-Le pipeline utilise un cache pour :
-- `node_modules/` : Dépendances Node.js
-- `../sparkfit_prisma-schema/node_modules/` : Dépendances Prisma
+### Docker-in-Docker (DinD)
+```yaml
+services:
+  - docker:20.10.16-dind  # Docker daemon
 
-Cela accélère les builds suivants.
+variables:
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_HOST: tcp://docker:2376
+```
 
-## 🛠️ Dépannage
+### Construction d'images
+```yaml
+script:
+  - docker build -t $IMAGE_NAME:$IMAGE_TAG .
+  - docker push $IMAGE_NAME:$IMAGE_TAG
+```
 
-### Problème : Tests qui échouent
-**Solution :**
-1. Vérifiez les logs dans GitLab
-2. Testez localement : `npm test`
-3. Vérifiez la base de données
+## 📊 Artifacts et Cache
 
-### Problème : Build Docker qui échoue
-**Solution :**
-1. Vérifiez le Dockerfile
-2. Testez localement : `docker build .`
-3. Vérifiez les dépendances
+### Artifacts (Fichiers conservés)
+```yaml
+artifacts:
+  paths:
+    - coverage/          # Rapports de couverture
+    - test-results/      # Résultats de tests
+  expire_in: 1 week      # Conservation 1 semaine
+```
 
-### Problème : Pipeline ne se lance pas
-**Solution :**
-1. Vérifiez que le fichier `.gitlab-ci.yml` est dans le bon répertoire
-2. Vérifiez la syntaxe YAML
-3. Vérifiez les permissions GitLab
+### Cache (Accélération)
+```yaml
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - node_modules/      # Dépendances Node.js
+    - .npm/             # Cache npm
+```
 
-## 📈 Prochaines étapes
+## 🎮 Utilisation pratique
 
-Une fois que cette configuration fonctionne, vous pourrez ajouter :
+### 1. **Développement quotidien**
+```bash
+# 1. Créer une branche feature
+git checkout -b feature/nouvelle-fonctionnalite
 
-1. **Déploiement automatique** en staging
-2. **Déploiement manuel** en production
-3. **Tests de sécurité**
-4. **Analyse de code**
-5. **Notifications Slack/Email**
+# 2. Développer et tester localement
+npm test
+npm run build
 
-## 🎓 Apprentissage
+# 3. Pousser sur develop
+git checkout develop
+git merge feature/nouvelle-fonctionnalite
+git push origin develop
+# → Pipeline automatique : test → build → staging
+```
 
-Cette configuration vous apprend :
-- ✅ **YAML** : Format de configuration
-- ✅ **Docker** : Conteneurisation
-- ✅ **CI/CD** : Intégration continue
-- ✅ **Tests automatisés** : Qualité du code
-- ✅ **Base de données** : Tests avec PostgreSQL
+### 2. **Livraison en production**
+```bash
+# 1. Merger develop vers main
+git checkout main
+git merge develop
+git push origin main
+# → Pipeline automatique : test → build → production (manuel)
+
+# 2. Valider le déploiement
+# Aller sur GitLab > CI/CD > Pipelines > Cliquer sur "Deploy"
+```
+
+## 📈 Monitoring et Debug
+
+### 1. **Voir les pipelines**
+- GitLab > Votre projet > **CI/CD > Pipelines**
+
+### 2. **Voir les logs**
+- Cliquer sur un pipeline
+- Cliquer sur un job
+- Voir les logs en temps réel
+
+### 3. **Variables de debug**
+```yaml
+script:
+  - echo "Commit: $CI_COMMIT_SHORT_SHA"
+  - echo "Branche: $CI_COMMIT_REF_SLUG"
+  - echo "Répertoire: $CI_PROJECT_DIR"
+```
+
+## 🚨 Gestion des erreurs
+
+### 1. **Tests qui échouent**
+```yaml
+test:
+  script:
+    - npm test
+  # Si npm test retourne une erreur → Job échoue → Pipeline s'arrête
+```
+
+### 2. **Déploiement manuel**
+```yaml
+deploy_production:
+  when: manual  # Nécessite une validation humaine
+```
+
+### 3. **Rollback automatique**
+```yaml
+deploy_production:
+  script:
+    - kubectl set image deployment/sparkfit-backend sparkfit-backend=$IMAGE_NAME:$IMAGE_TAG
+    - kubectl rollout status deployment/sparkfit-backend --timeout=300s
+    - kubectl rollout undo deployment/sparkfit-backend  # Si échec
+```
+
+## 🔐 Sécurité
+
+### 1. **Variables sensibles**
+```yaml
+# Dans GitLab > Settings > CI/CD > Variables
+DATABASE_PASSWORD: "***"  # Masqué dans les logs
+JWT_SECRET: "***"
+```
+
+### 2. **Permissions**
+```yaml
+deploy_production:
+  only:
+    - main              # Seulement sur main
+  when: manual          # Validation manuelle
+```
+
+## 📚 Ressources utiles
+
+- [GitLab CI/CD Documentation](https://docs.gitlab.com/ee/ci/)
+- [YAML Syntax](https://yaml.org/spec/)
+- [Docker Documentation](https://docs.docker.com/)
+- [Node.js Best Practices](https://nodejs.org/en/docs/guides/)
+
+## 🎯 Prochaines étapes
+
+1. **Configurer les variables d'environnement** dans GitLab
+2. **Tester la pipeline** avec un petit changement
+3. **Configurer les notifications** (Slack, email)
+4. **Optimiser les performances** (cache, parallélisation)
+5. **Ajouter des tests de sécurité** (SAST, DAST)
 
 ---
 
-**💡 Conseil :** Commencez simple, puis ajoutez des fonctionnalités progressivement ! 
+**💡 Conseil** : Commencez simple, puis ajoutez progressivement des fonctionnalités ! 

@@ -88,7 +88,7 @@ model Exercise {
   details      Workout_Detail[]
   mealPlans    Meal_Plan[]
 
-  // @@unique([name, goal_type])
+  @@unique([name, goal_type])
 }
 
 model Meal_Plan {
