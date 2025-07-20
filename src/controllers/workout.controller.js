@@ -284,44 +284,65 @@ exports.getWorkoutById = async (req, res) => {
     }
 };
 
-exports.updateWorkout = async (req, res) => {
+exports.updateWorkout = async (req, res, next) => {
     try {
-        const workoutId = Number(req.params.id);
-        const userId = Number(req.userToken.id);
-        const { name, duration, calories_burned } = req.body;
+        const { id } = req.params;
+        const userId = parseInt(req.userToken.id);
+        const { date, duration, calories_burned, details } = req.body;
 
-        if (isNaN(workoutId)) {
-            return res.status(400).json({
+        if (!id) {
+            return res.json({
                 status: 400,
-                message: "Invalid workout ID"
+                message: "Workout ID is required",
             });
         }
 
-        // Vérifier que le workout existe et appartient à l'utilisateur
-        const existingWorkout = await prisma.Workout.findFirst({
-            where: { 
-                workout_id: workoutId,
-                user_id: userId
-            }
+        // Vérifier que le workout appartient à l'utilisateur
+        const existingWorkout = await prisma.workout.findUnique({
+            where: { workout_id: parseInt(id) },
+            include: { details: true }
         });
 
         if (!existingWorkout) {
-            return res.status(404).json({
+            return res.json({
                 status: 404,
-                message: "Workout not found"
+                message: "Workout not found",
             });
         }
 
+        if (existingWorkout.user_id !== userId && !req.userToken.admin) {
+            return res.json({
+                status: 401,
+                message: "Unauthorized to update this workout",
+            });
+        }
+
+        // Supprimer les anciens détails
+        await prisma.workout_Detail.deleteMany({
+            where: { workout_id: parseInt(id) }
+        });
+
+        // Préparer les nouveaux détails si fournis
+        let detailsData = [];
+        if (details && Array.isArray(details)) {
+            detailsData = details.map(detail => ({
+                workout_id: parseInt(id),
+                exercise_id: detail.exercise_id,
+                sets: detail.sets,
+                reps: detail.reps,
+                weight: detail.weight
+            }));
+        }
+
         // Mettre à jour le workout
-        const updatedWorkout = await prisma.Workout.update({
-            where: { 
-                workout_id: workoutId
-            },
-            data: {
-                name: name || existingWorkout.name,
-                duration: duration || existingWorkout.duration,
-                calories_burned: calories_burned || existingWorkout.calories_burned
-            },
+        const updateData = {};
+        if (date) updateData.date = new Date(date);
+        if (duration) updateData.duration = duration;
+        if (calories_burned) updateData.calories_burned = calories_burned;
+
+        const updatedWorkout = await prisma.workout.update({
+            where: { workout_id: parseInt(id) },
+            data: updateData,
             include: {
                 details: {
                     include: {
@@ -331,16 +352,36 @@ exports.updateWorkout = async (req, res) => {
             }
         });
 
-        return res.status(200).json({
-            status: 200,
-            message: "Workout updated successfully",
-            data: updatedWorkout
+        // Créer les nouveaux détails
+        if (detailsData.length > 0) {
+            await prisma.workout_Detail.createMany({
+                data: detailsData
+            });
+        }
+
+        // Récupérer le workout final avec tous les détails
+        const finalWorkout = await prisma.workout.findUnique({
+            where: { workout_id: parseInt(id) },
+            include: {
+                details: {
+                    include: {
+                        exercise: true
+                    }
+                }
+            }
         });
+
+        return res.json({
+            status: 200,
+            message: "Successfully updated workout",
+            data: finalWorkout
+        });
+
     } catch (err) {
         console.error('Update workout error:', err);
-        return res.status(500).json({
+        return res.json({
             status: 500,
-            message: err.message || "Internal server error"
+            message: err.message || "Internal server error",
         });
     }
 };
