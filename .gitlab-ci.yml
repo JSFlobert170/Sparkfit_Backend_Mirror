@@ -19,31 +19,29 @@ stages:
 
 cache:
   paths:
-    - node_modules/
+    - /node_modules/
 
 before_script:
-  # - npm ci
+  - npm ci
 
 test:
   stage: test
   script:
-    - ls -la
-    - pwd
     - npm test
 
 migrate:
   stage: migrate
   script:
-    - npx prisma migrate deploy --schema=./prisma/schema.prisma
+    - npx prisma migrate deploy --schema=../prisma/schema.prisma
 
 build:
   stage: build
   script:
-    - npx prisma generate --schema=./prisma/schema.prisma
+    - npx prisma generate --schema=../prisma/schema.prisma
     - npm run build
 
 deploy:
   stage: deploy
   when: manual
   script:
-    - echo "Deploiement manuel a adapter"
+    - echo "Déploiement manuel à adapter"
