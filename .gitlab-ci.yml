@@ -30,8 +30,11 @@ before_script:
 test:
   stage: test
   script:
+    - ls -la
+    - pwd
     - cd sparkfit_backend
     - npm run test
+
 
 migrate:
   stage: migrate
