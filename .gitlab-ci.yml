@@ -1,9 +1,68 @@
 stages:
   - test
+  - build
+
+variables:
+  NODE_IMAGE: "node:18-alpine"
+  APP_NAME: "sparkfit-backend"
 
 test:
   stage: test
-  image: node:18-alpine
+  image: $NODE_IMAGE
+  services:
+    - postgres:13-alpine
+  variables:
+    POSTGRES_DB: "test_db"
+    POSTGRES_USER: "test_user"
+    POSTGRES_PASSWORD: "test_password"
+    DATABASE_URL: "postgresql://test_user:test_password@postgres:5432/test_db"
+    NODE_ENV: "test"
+    JWT_SECRET: "test-secret-key"
   script:
-    - echo "Hello World"
-    - node --version
+    - echo "Debut des tests"
+    - npm ci
+    - echo "Installation Prisma"
+    - cd ../sparkfit_prisma-schema
+    - npm ci
+    - cd ../sparkfit_backend
+    - echo "Generation client Prisma"
+    - npx prisma generate --schema=../sparkfit_prisma-schema/schema.prisma
+    - echo "Migrations"
+    - npx prisma migrate deploy --schema=../sparkfit_prisma-schema/schema.prisma
+    - echo "Tests"
+    - npm test
+    - echo "Tests termines"
+  artifacts:
+    paths:
+      - coverage/
+    expire_in: 1 week
+
+build:
+  stage: build
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_VERIFY: 1
+    DOCKER_CERT_PATH: "$CI_PROJECT_DIR/certs/client"
+  script:
+    - echo "Construction Docker"
+    - docker build -t $APP_NAME:$CI_COMMIT_SHORT_SHA .
+    - docker build -t $APP_NAME:latest .
+    - echo "Images construites"
+    - docker images | grep $APP_NAME
+    - echo "Test image"
+    - docker run --rm $APP_NAME:$CI_COMMIT_SHORT_SHA node --version
+    - echo "Construction terminee"
+  artifacts:
+    paths:
+      - docker-images/
+    expire_in: 1 month
+
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - node_modules/
+    - ../sparkfit_prisma-schema/node_modules/
