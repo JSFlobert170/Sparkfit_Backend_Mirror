@@ -18,17 +18,20 @@ test:
     DATABASE_URL: "postgresql://test_user:test_password@postgres:5432/test_db"
     NODE_ENV: "test"
     JWT_SECRET: "test-secret-key"
+    PORT: "3001"
   script:
     - echo "Debut des tests"
+    - echo "Repertoire actuel: $PWD"
+    - echo "Contenu du repertoire:"
+    - ls -la
+    - echo "Installation des dependances backend"
     - npm ci
-    - echo "Installation Prisma"
-    - cd ../sparkfit_prisma-schema
-    - npm ci
-    - cd ../sparkfit_backend
     - echo "Generation client Prisma"
-    - npx prisma generate --schema=../sparkfit_prisma-schema/schema.prisma
+    - npx prisma generate
+    - echo "Attente de la base de donnees PostgreSQL"
+    - sleep 10
     - echo "Migrations"
-    - npx prisma migrate deploy --schema=../sparkfit_prisma-schema/schema.prisma
+    - npx prisma migrate deploy
     - echo "Tests"
     - npm test
     - echo "Tests termines"
@@ -65,4 +68,3 @@ cache:
   key: "$CI_COMMIT_REF_SLUG"
   paths:
     - node_modules/
-    - ../sparkfit_prisma-schema/node_modules/
