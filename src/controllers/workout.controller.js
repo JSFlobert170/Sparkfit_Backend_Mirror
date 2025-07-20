@@ -298,7 +298,7 @@ exports.updateWorkout = async (req, res, next) => {
         }
 
         // Vérifier que le workout appartient à l'utilisateur
-        const existingWorkout = await prisma.workout.findUnique({
+        const existingWorkout = await prisma.Workout.findUnique({
             where: { workout_id: parseInt(id) },
             include: { details: true }
         });
@@ -318,50 +318,114 @@ exports.updateWorkout = async (req, res, next) => {
         }
 
         // Supprimer les anciens détails
-        await prisma.workout_Detail.deleteMany({
+        await prisma.Workout_Detail.deleteMany({
             where: { workout_id: parseInt(id) }
         });
 
         // Préparer les nouveaux détails si fournis
         let detailsData = [];
         if (details && Array.isArray(details)) {
-            detailsData = details.map(detail => ({
-                workout_id: parseInt(id),
-                exercise_id: detail.exercise_id,
-                sets: detail.sets,
-                reps: detail.reps,
-                weight: detail.weight
-            }));
+            // Créer ou récupérer les exercices d'abord
+            const exercisePromises = details.map(async (detail) => {
+                let exercise;
+                
+                // Vérifier si on a un objet exercise complet ou juste un exercise_id
+                if (detail.exercise && detail.exercise.name) {
+                    // Cas où on a un objet exercise complet (création)
+                    exercise = await prisma.Exercise.findFirst({
+                        where: {
+                            name: detail.exercise.name,
+                            goal_type: detail.exercise.goal_type || 'GENERAL'
+                        }
+                    });
+                    
+                    if (!exercise) {
+                        exercise = await prisma.Exercise.create({
+                            data: {
+                                name: detail.exercise.name,
+                                description: detail.exercise.description || `Exercice ${detail.exercise.name}`,
+                                goal_type: detail.exercise.goal_type || 'GENERAL',
+                                video_url: detail.exercise.video_url || null
+                            }
+                        });
+                    }
+                } else {
+                    // Cas où on a juste un exercise_id (mise à jour)
+                    const exerciseNames = {
+                        1: 'Pompes',
+                        2: 'Squats', 
+                        3: 'Planche',
+                        4: 'Burpees',
+                        5: 'Mountain Climbers',
+                        6: 'Développé couché',
+                        7: 'Tractions',
+                        8: 'Deadlift',
+                        9: 'Dips',
+                        10: 'Rowing',
+                        11: 'Fentes',
+                        12: 'Gainage latéral'
+                    };
+                    
+                    const exerciseName = exerciseNames[detail.exercise_id] || 'Pompes';
+                    
+                    exercise = await prisma.Exercise.findFirst({
+                        where: {
+                            name: exerciseName,
+                            goal_type: 'GENERAL'
+                        }
+                    });
+                    
+                    if (!exercise) {
+                        exercise = await prisma.Exercise.create({
+                            data: {
+                                name: exerciseName,
+                                description: `Exercice ${exerciseName}`,
+                                goal_type: 'GENERAL'
+                            }
+                        });
+                    }
+                }
+                
+                return {
+                    workout_id: parseInt(id),
+                    exercise_id: exercise.exercise_id,
+                    sets: detail.sets || 0,
+                    reps: detail.reps || 0,
+                    weight: detail.weight || 0,
+                    completed: false,
+                    completed_sets: 0,
+                    completed_reps: 0,
+                    completed_weight: 0
+                };
+            });
+            
+            detailsData = await Promise.all(exercisePromises);
         }
 
         // Mettre à jour le workout
         const updateData = {};
-        if (name) updateData.name = name;
+        if (name !== undefined) updateData.name = name;
         if (date) updateData.date = new Date(date);
-        if (duration) updateData.duration = duration;
-        if (calories_burned) updateData.calories_burned = calories_burned;
+        if (duration !== undefined) updateData.duration = duration;
+        if (calories_burned !== undefined) updateData.calories_burned = calories_burned;
 
-        const updatedWorkout = await prisma.workout.update({
+        console.log('Updating workout with data:', updateData);
+
+        const updatedWorkout = await prisma.Workout.update({
             where: { workout_id: parseInt(id) },
-            data: updateData,
-            include: {
-                details: {
-                    include: {
-                        exercise: true
-                    }
-                }
-            }
+            data: updateData
         });
 
         // Créer les nouveaux détails
         if (detailsData.length > 0) {
-            await prisma.workout_Detail.createMany({
+            console.log('Creating new details:', detailsData);
+            await prisma.Workout_Detail.createMany({
                 data: detailsData
             });
         }
 
         // Récupérer le workout final avec tous les détails
-        const finalWorkout = await prisma.workout.findUnique({
+        const finalWorkout = await prisma.Workout.findUnique({
             where: { workout_id: parseInt(id) },
             include: {
                 details: {
@@ -371,6 +435,8 @@ exports.updateWorkout = async (req, res, next) => {
                 }
             }
         });
+
+        console.log('Final workout after update:', finalWorkout);
 
         return res.status(200).json({
             status: 200,
