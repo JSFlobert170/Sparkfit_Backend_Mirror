@@ -40,7 +40,10 @@ generate:
 test:
   stage: test
   needs: [generate]
+  variables:
+    DATABASE_URL: $DATABASE_URL
   script:
+    - echo $DATABASE_URL
     - ls -la node_modules/.prisma/client
     - npm test
 
