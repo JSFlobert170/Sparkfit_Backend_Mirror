@@ -23,7 +23,7 @@ cache:
     - /node_modules/
 
 before_script:
-  - cd backend
+  - cd sparkfit_backend
   - npm ci
   - cd ..
 
