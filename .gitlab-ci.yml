@@ -28,7 +28,7 @@ before_script:
 generate:
   stage: prepare
   script:
-    - apk add --no-cache postgresql-client
+    - apt-get update && apt-get install -y postgresql-client
     - until pg_isready -h postgres -p 5432 -U myuser; do echo "Waiting for Postgres..."; sleep 2; done
     - git clone https://JSFlobert:glpat-hQtGYoDCnKN97RZkMCUo@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
     - mkdir -p prisma
@@ -48,7 +48,7 @@ migrate:
   stage: migrate
   needs: [generate]
   script:
-    - apk add --no-cache postgresql-client
+    - apt-get update && apt-get install -y postgresql-client
     - until pg_isready -h postgres -p 5432 -U myuser; do echo "Waiting for Postgres..."; sleep 2; done
     - npx prisma migrate deploy --schema=prisma/schema.prisma
 
