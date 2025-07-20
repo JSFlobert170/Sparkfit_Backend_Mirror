@@ -13,6 +13,9 @@ variables:
 
 stages:
   - test
+  - migrate
+  - build
+  - deploy
 
 cache:
   paths:
