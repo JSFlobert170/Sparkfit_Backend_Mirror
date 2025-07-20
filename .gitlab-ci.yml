@@ -1,75 +1,52 @@
-stages:
-  - test
-  - build
+image: node:18
+
+services:
+  - name: postgres:15-alpine
+    alias: postgres
 
 variables:
-  NODE_IMAGE: "node:18-alpine"
-  APP_NAME: "sparkfit-backend"
+  POSTGRES_DB: testdb
+  POSTGRES_USER: testuser
+  POSTGRES_PASSWORD: testpassword
+  DATABASE_URL: "postgresql://testuser:testpassword@postgres:5432/testdb?schema=public"
+  NODE_ENV: test
+
+stages:
+  - test
+
+cache:
+  paths:
+    - sparkfit_backend/node_modules/
+    - sparkfit_prisma-schema/node_modules/
+
+before_script:
+  # Installer les dépendances backend
+  - cd sparkfit_backend
+  - npm ci
+  - cd ..
 
 test:
   stage: test
-  image: $NODE_IMAGE
-  services:
-    - postgres:13-alpine
-  variables:
-    POSTGRES_DB: "test_db"
-    POSTGRES_USER: "test_user"
-    POSTGRES_PASSWORD: "test_password"
-    DATABASE_URL: "postgresql://test_user:test_password@postgres:5432/test_db"
-    NODE_ENV: "test"
-    JWT_SECRET: "test-secret-key"
-    PORT: "3001"
   script:
-    - echo "Debut des tests"
-    - echo "Repertoire actuel: $PWD"
-    - echo "Installation des dependances"
-    - npm install
-    - echo "Copie du schema Prisma"
-    - mkdir -p prisma
-    - cp ../sparkfit_prisma-schema/schema.prisma prisma/
-    - cp -r ../sparkfit_prisma-schema/migrations prisma/
-    - echo "Generation client Prisma"
-    - npx prisma generate --schema=./prisma/schema.prisma
-    - echo "Attente de PostgreSQL"
-    - sleep 10
-    - echo "Migrations"
+    - cd sparkfit_backend
+    - npm run test
+
+migrate:
+  stage: migrate
+  script:
+    # Lancer les migrations prisma
     - npx prisma migrate deploy --schema=./prisma/schema.prisma
-    - echo "Tests"
-    - npm test
-    - echo "Tests termines"
-  artifacts:
-    paths:
-      - coverage/
-    expire_in: 1 week
 
 build:
   stage: build
-  image: docker:20.10.16
-  services:
-    - docker:20.10.16-dind
-  variables:
-    DOCKER_TLS_CERTDIR: "/certs"
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_VERIFY: 1
-    DOCKER_CERT_PATH: "$CI_PROJECT_DIR/certs/client"
   script:
-    - echo "Construction Docker"
-    - echo "Contexte de build depuis le repertoire parent"
-    - cd ..
-    - echo "Build avec Dockerfile: sparkfit_backend/Dockerfile"
-    - docker build -t $APP_NAME:$CI_COMMIT_SHORT_SHA -f sparkfit_backend/Dockerfile .
-    - docker build -t $APP_NAME:latest -f sparkfit_backend/Dockerfile .
-    - echo "Images construites"
-    - docker images | grep $APP_NAME
-    - echo "Test image"
-    - docker run --rm $APP_NAME:$CI_COMMIT_SHORT_SHA node --version
-    - echo "Construction terminee"
-  artifacts:
-    paths:
-      - docker-images/
-    expire_in: 1 month
+    # Générer le client Prisma
+    - npx prisma generate --schema=./prisma/schema.prisma
+    # Build backend (exemple avec TypeScript)
+    - cd backend && npm run build
 
-cache:
-  key: "$CI_COMMIT_REF_SLUG"
-  paths:
-    - node_modules/
+deploy:
+  stage: deploy
+  when: manual
+  script:
+    - echo "Déploiement manuel à adapter selon ton infrastructure"
