@@ -19,22 +19,17 @@ stages:
 
 cache:
   paths:
-    - sparkfit_backend/node_modules/
-    - /node_modules/
+    - node_modules/
 
 before_script:
-  - cd sparkfit_backend
   - npm ci
-  - cd ..
 
 test:
   stage: test
   script:
     - ls -la
     - pwd
-    - cd sparkfit_backend
-    - npm run test
-
+    - npm test
 
 migrate:
   stage: migrate
@@ -45,10 +40,10 @@ build:
   stage: build
   script:
     - npx prisma generate --schema=./prisma/schema.prisma
-    - cd backend && npm run build
+    - npm run build
 
 deploy:
   stage: deploy
   when: manual
   script:
-    - echo "Déploiement manuel à adapter"
+    - echo "Deploiement manuel a adapter"
