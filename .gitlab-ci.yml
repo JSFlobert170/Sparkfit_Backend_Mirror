@@ -5,10 +5,10 @@ services:
     alias: postgres
 
 variables:
-  POSTGRES_DB: testdb
-  POSTGRES_USER: testuser
-  POSTGRES_PASSWORD: testpassword
-  DATABASE_URL: "postgresql://testuser:testpassword@postgres:5432/testdb?schema=public"
+  POSTGRES_DB: mydatabase
+  POSTGRES_USER: myuser
+  POSTGRES_PASSWORD: mypassword
+  DATABASE_URL: "postgresql://myuser:mypassword@postgres:5432/mydatabase?schema=public"
   NODE_ENV: test
 
 stages:
@@ -28,9 +28,9 @@ before_script:
 generate:
   stage: prepare
   script:
+    - apk add --no-cache postgresql-client       # Installer pg_isready dans l’image alpine
+    - until pg_isready -h postgres -p 5432 -U testuser; do echo "Waiting for Postgres..."; sleep 2; done
     - git clone https://JSFlobert:glpat-hQtGYoDCnKN97RZkMCUo@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
-    - ls -la
-    - ls -la ..
     - mkdir -p prisma
     - cp sparkfit_prisma-schema/schema.prisma prisma/
     - cp -r sparkfit_prisma-schema/migrations prisma/
@@ -48,6 +48,8 @@ migrate:
   stage: migrate
   needs: [generate]
   script:
+    - apk add --no-cache postgresql-client
+    - until pg_isready -h postgres -p 5432 -U myuser; do echo "Waiting for Postgres..."; sleep 2; done
     - npx prisma migrate deploy --schema=prisma/schema.prisma
 
 build:
