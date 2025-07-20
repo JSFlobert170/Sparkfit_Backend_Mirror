@@ -41,7 +41,7 @@ test:
   stage: test
   needs: [generate]
   script:
-    - echo $DATABASE_URL
+    - echo "DATABASE_URL=$DATABASE_URL"
     - ls -la node_modules/.prisma/client
     - npm test
 
