@@ -58,38 +58,23 @@ test:
   
   # Scripts à exécuter (comme des commandes dans le terminal)
   script:
-    # 1. Afficher des informations utiles
     - echo "🚀 Début des tests"
     - echo "📁 Répertoire: $CI_PROJECT_DIR"
     - echo "🔧 Branche: $CI_COMMIT_REF_SLUG"
-    
-    # 2. Installer les dépendances du backend
     - echo "📦 Installation des dépendances backend..."
     - npm ci
-    
-    # 3. Installer les dépendances Prisma
     - echo "🗄️ Installation des dépendances Prisma..."
     - cd ../sparkfit_prisma-schema
     - npm ci
     - cd ../sparkfit_backend
-    
-    # 4. Attendre que la base de données soit prête
     - echo "⏳ Attente de la base de données..."
     - sleep 10
-    
-    # 5. Générer le client Prisma
     - echo "🔧 Génération du client Prisma..."
     - npx prisma generate --schema=../sparkfit_prisma-schema/schema.prisma
-    
-    # 6. Appliquer les migrations de base de données
     - echo "🗄️ Application des migrations..."
     - npx prisma migrate deploy --schema=../sparkfit_prisma-schema/schema.prisma
-    
-    # 7. Exécuter les tests
     - echo "🧪 Exécution des tests..."
     - npm test
-    
-    # 8. Afficher le résultat
     - echo "✅ Tests terminés avec succès!"
   
   # Fichiers à conserver après les tests
@@ -129,24 +114,15 @@ build:
   
   # Scripts à exécuter
   script:
-    # 1. Afficher des informations
     - echo "🔨 Début de la construction Docker"
     - echo "📦 Application: $APP_NAME"
-    
-    # 2. Construire l'image Docker
     - echo "🏗️ Construction de l'image..."
     - docker build -t $APP_NAME:$CI_COMMIT_SHORT_SHA .
     - docker build -t $APP_NAME:latest .
-    
-    # 3. Afficher les images créées
     - echo "📋 Images construites:"
     - docker images | grep $APP_NAME
-    
-    # 4. Tester l'image rapidement
     - echo "🧪 Test rapide de l'image..."
     - docker run --rm $APP_NAME:$CI_COMMIT_SHORT_SHA node --version
-    
-    # 5. Afficher le résultat
     - echo "✅ Construction terminée!"
   
   # Fichiers à conserver
@@ -175,12 +151,6 @@ deploy_staging:
     - echo "🚀 Déploiement en staging..."
     - echo "📦 Application: $APP_NAME"
     - echo "🔧 Version: $CI_COMMIT_SHORT_SHA"
-    
-    # Ici vous ajouteriez vos commandes de déploiement
-    # Par exemple pour Kubernetes :
-    # - kubectl set image deployment/sparkfit-backend sparkfit-backend=$APP_NAME:$CI_COMMIT_SHORT_SHA
-    # - kubectl rollout status deployment/sparkfit-backend
-    
     - echo "✅ Déploiement staging terminé!"
   
   # Environnement de déploiement
@@ -208,12 +178,6 @@ deploy_production:
     - echo "🚀 Déploiement en production..."
     - echo "📦 Application: $APP_NAME"
     - echo "🔧 Version: $CI_COMMIT_SHORT_SHA"
-    
-    # Ici vous ajouteriez vos commandes de déploiement
-    # Par exemple pour Kubernetes :
-    # - kubectl set image deployment/sparkfit-backend sparkfit-backend=$APP_NAME:$CI_COMMIT_SHORT_SHA
-    # - kubectl rollout status deployment/sparkfit-backend
-    
     - echo "✅ Déploiement production terminé!"
   
   # Environnement de déploiement
