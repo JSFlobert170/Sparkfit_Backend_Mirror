@@ -4,3 +4,6 @@ package-lock.json
 node_modules
 logs
 .github
+
+# Test coverage reports (generated automatically)
+coverage/

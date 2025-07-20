@@ -288,10 +288,10 @@ exports.updateWorkout = async (req, res, next) => {
     try {
         const { id } = req.params;
         const userId = parseInt(req.userToken.id);
-        const { date, duration, calories_burned, details } = req.body;
+        const { date, duration, calories_burned, details, name } = req.body;
 
         if (!id) {
-            return res.json({
+            return res.status(400).json({
                 status: 400,
                 message: "Workout ID is required",
             });
@@ -304,14 +304,14 @@ exports.updateWorkout = async (req, res, next) => {
         });
 
         if (!existingWorkout) {
-            return res.json({
+            return res.status(404).json({
                 status: 404,
                 message: "Workout not found",
             });
         }
 
         if (existingWorkout.user_id !== userId && !req.userToken.admin) {
-            return res.json({
+            return res.status(401).json({
                 status: 401,
                 message: "Unauthorized to update this workout",
             });
@@ -336,6 +336,7 @@ exports.updateWorkout = async (req, res, next) => {
 
         // Mettre à jour le workout
         const updateData = {};
+        if (name) updateData.name = name;
         if (date) updateData.date = new Date(date);
         if (duration) updateData.duration = duration;
         if (calories_burned) updateData.calories_burned = calories_burned;
@@ -371,7 +372,7 @@ exports.updateWorkout = async (req, res, next) => {
             }
         });
 
-        return res.json({
+        return res.status(200).json({
             status: 200,
             message: "Successfully updated workout",
             data: finalWorkout
@@ -379,7 +380,7 @@ exports.updateWorkout = async (req, res, next) => {
 
     } catch (err) {
         console.error('Update workout error:', err);
-        return res.json({
+        return res.status(500).json({
             status: 500,
             message: err.message || "Internal server error",
         });

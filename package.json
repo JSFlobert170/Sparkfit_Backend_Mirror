@@ -47,6 +47,33 @@
     ],
     "testMatch": [
       "**/tests/**/*.test.js"
-    ]
+    ],
+    "collectCoverage": true,
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/app.js",
+      "!src/middlewares/checkJWT.js",
+      "!**/node_modules/**",
+      "!**/coverage/**",
+      "!**/tests/**"
+    ],
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "cobertura",
+      "html"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 50,
+        "functions": 50,
+        "lines": 50,
+        "statements": 50
+      }
+    },
+    "testTimeout": 30000,
+    "detectOpenHandles": true,
+    "forceExit": true,
+    "verbose": true
   }
 }
