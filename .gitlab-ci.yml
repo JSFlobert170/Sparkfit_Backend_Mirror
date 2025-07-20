@@ -29,6 +29,9 @@ before_script:
 generate:
   stage: prepare
   script:
+    - mkdir -p prisma
+    - cp ../sparkfit_prisma-schema/schema.prisma prisma/
+    - cp -r ../sparkfit_prisma-schema/migrations prisma/
     - npx prisma generate --schema=../prisma/schema.prisma
 
 test:
