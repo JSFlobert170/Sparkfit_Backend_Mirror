@@ -12,6 +12,7 @@ variables:
   NODE_ENV: test
 
 stages:
+  - prepare
   - test
   - migrate
   - build
@@ -22,7 +23,13 @@ cache:
     - /node_modules/
 
 before_script:
+  - npm install
   - npm ci
+
+generate:
+  stage: prepare
+  script:
+    - npx prisma generate --schema=../prisma/schema.prisma
 
 test:
   stage: test
