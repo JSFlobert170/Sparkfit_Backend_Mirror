@@ -20,7 +20,7 @@ stages:
 
 cache:
   paths:
-    - /node_modules/
+    - node_modules/
 
 before_script:
   - npm ci
@@ -46,13 +46,15 @@ test:
 
 migrate:
   stage: migrate
+  needs: [generate]
   script:
-    - npx prisma migrate deploy --schema=../prisma/schema.prisma
+    - npx prisma migrate deploy --schema=prisma/schema.prisma
 
 build:
   stage: build
+  needs: [generate]
   script:
-    - npx prisma generate --schema=../prisma/schema.prisma
+    - npx prisma generate --schema=prisma/schema.prisma
     - npm run build
 
 deploy:
