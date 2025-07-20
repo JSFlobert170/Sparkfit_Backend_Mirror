@@ -1,0 +1,257 @@
+# ========================================
+# GITLAB CI/CD PIPELINE - SPARKFIT BACKEND
+# ========================================
+# Ce fichier définit les étapes automatisées qui s'exécutent
+# quand vous poussez du code sur GitLab
+
+# Définition des étapes (stages) dans l'ordre d'exécution
+stages:
+  - test      # 1. Tests unitaires
+  - build     # 2. Construction de l'image Docker
+  - deploy    # 3. Déploiement (optionnel)
+
+# Variables globales pour toute la pipeline
+variables:
+  # Image Docker de base pour les jobs
+  DOCKER_IMAGE: node:18-alpine
+  # Nom de l'image Docker à construire
+  IMAGE_NAME: sparkfit-backend
+  # Tag de l'image (utilise le SHA du commit)
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+
+# ========================================
+# ÉTAPE 1: TESTS UNITAIRES
+# ========================================
+test:
+  # Cette étape s'exécute sur les branches develop et main
+  only:
+    - develop
+    - main
+  
+  # Nom de l'étape
+  stage: test
+  
+  # Image Docker à utiliser
+  image: $DOCKER_IMAGE
+  
+  # Services nécessaires (base de données pour les tests)
+  services:
+    - postgres:13-alpine
+  
+  # Variables d'environnement pour les tests
+  variables:
+    # Configuration de la base de données de test
+    POSTGRES_DB: test_db
+    POSTGRES_USER: test_user
+    POSTGRES_PASSWORD: test_password
+    DATABASE_URL: "postgresql://test_user:test_password@postgres:5432/test_db"
+    NODE_ENV: test
+    JWT_SECRET: test-secret-key
+  
+  # Scripts à exécuter
+  script:
+    # 1. Afficher les informations de debug
+    - echo "🚀 Début des tests pour le commit: $CI_COMMIT_SHORT_SHA"
+    - echo "📁 Répertoire de travail: $CI_PROJECT_DIR"
+    - echo "🐳 Image Docker: $DOCKER_IMAGE"
+    
+    # 2. Installer les dépendances
+    - echo "📦 Installation des dépendances..."
+    - npm ci --only=production
+    
+    # 3. Attendre que la base de données soit prête
+    - echo "⏳ Attente de la base de données..."
+    - sleep 10
+    
+    # 4. Exécuter les migrations Prisma
+    - echo "🗄️ Exécution des migrations Prisma..."
+    - npx prisma migrate deploy
+    
+    # 5. Exécuter les tests
+    - echo "🧪 Exécution des tests unitaires..."
+    - npm test
+    
+    # 6. Afficher les résultats
+    - echo "✅ Tests terminés avec succès!"
+  
+  # Artifacts à conserver après les tests
+  artifacts:
+    # Conserver les rapports de couverture de code
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+    # Conserver les logs de test
+    paths:
+      - coverage/
+      - test-results/
+    # Conserver pendant 7 jours
+    expire_in: 1 week
+
+# ========================================
+# ÉTAPE 2: CONSTRUCTION DE L'IMAGE DOCKER
+# ========================================
+build:
+  # Cette étape s'exécute seulement si les tests passent
+  # et sur les branches develop et main
+  only:
+    - develop
+    - main
+  
+  # Nom de l'étape
+  stage: build
+  
+  # Utiliser Docker-in-Docker
+  image: docker:20.10.16
+  
+  # Services nécessaires
+  services:
+    - docker:20.10.16-dind
+  
+  # Variables d'environnement
+  variables:
+    # Activer Docker-in-Docker
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_VERIFY: 1
+    DOCKER_CERT_PATH: "$CI_PROJECT_DIR/certs/client"
+  
+  # Scripts à exécuter
+  script:
+    # 1. Afficher les informations de debug
+    - echo "🔨 Début de la construction de l'image Docker"
+    - echo "📦 Image: $IMAGE_NAME:$IMAGE_TAG"
+    
+    # 2. Se connecter au registry Docker (si configuré)
+    # - echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+    
+    # 3. Construire l'image Docker
+    - echo "🏗️ Construction de l'image..."
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG .
+    - docker build -t $IMAGE_NAME:latest .
+    
+    # 4. Afficher les images construites
+    - echo "📋 Images construites:"
+    - docker images | grep $IMAGE_NAME
+    
+    # 5. Tester l'image (optionnel)
+    - echo "🧪 Test de l'image..."
+    - docker run --rm $IMAGE_NAME:$IMAGE_TAG npm test
+    
+    # 6. Pousser l'image vers le registry (si configuré)
+    # - docker push $IMAGE_NAME:$IMAGE_TAG
+    # - docker push $IMAGE_NAME:latest
+    
+    - echo "✅ Construction terminée avec succès!"
+  
+  # Artifacts à conserver
+  artifacts:
+    paths:
+      - docker-images/
+    expire_in: 1 month
+
+# ========================================
+# ÉTAPE 3: DÉPLOIEMENT (OPTIONNEL)
+# ========================================
+deploy_staging:
+  # Cette étape s'exécute seulement sur develop
+  only:
+    - develop
+  
+  # Nom de l'étape
+  stage: deploy
+  
+  # Image Docker à utiliser
+  image: alpine:latest
+  
+  # Scripts à exécuter
+  script:
+    - echo "🚀 Déploiement en staging..."
+    - echo "📦 Image: $IMAGE_NAME:$IMAGE_TAG"
+    - echo "🌐 Environnement: staging"
+    
+    # Ici vous ajouteriez vos commandes de déploiement
+    # Par exemple:
+    # - kubectl set image deployment/sparkfit-backend sparkfit-backend=$IMAGE_NAME:$IMAGE_TAG
+    # - kubectl rollout status deployment/sparkfit-backend
+    
+    - echo "✅ Déploiement en staging terminé!"
+  
+  # Environnement de déploiement
+  environment:
+    name: staging
+    url: https://staging.sparkfit.com
+
+deploy_production:
+  # Cette étape s'exécute seulement sur main
+  only:
+    - main
+  
+  # Nom de l'étape
+  stage: deploy
+  
+  # Image Docker à utiliser
+  image: alpine:latest
+  
+  # Scripts à exécuter
+  script:
+    - echo "🚀 Déploiement en production..."
+    - echo "📦 Image: $IMAGE_NAME:$IMAGE_TAG"
+    - echo "🌐 Environnement: production"
+    
+    # Ici vous ajouteriez vos commandes de déploiement
+    # Par exemple:
+    # - kubectl set image deployment/sparkfit-backend sparkfit-backend=$IMAGE_NAME:$IMAGE_TAG
+    # - kubectl rollout status deployment/sparkfit-backend
+    
+    - echo "✅ Déploiement en production terminé!"
+  
+  # Environnement de déploiement
+  environment:
+    name: production
+    url: https://sparkfit.com
+  
+  # Déploiement manuel (nécessite une validation)
+  when: manual
+
+# ========================================
+# CONFIGURATIONS GLOBALES
+# ========================================
+
+# Cache pour accélérer les builds
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - node_modules/
+    - .npm/
+
+# Configuration des notifications
+# (décommentez et configurez selon vos besoins)
+# notifications:
+#   email:
+#     recipients:
+#       - dev-team@sparkfit.com
+#   slack:
+#     webhook: $SLACK_WEBHOOK_URL
+#     channel: '#deployments'
+
+# ========================================
+# EXEMPLE D'UTILISATION
+# ========================================
+# 
+# 1. Poussez du code sur la branche 'develop':
+#    git push origin develop
+#    → Déclenche: test → build → deploy_staging
+#
+# 2. Mergez develop vers main:
+#    git checkout main
+#    git merge develop
+#    git push origin main
+#    → Déclenche: test → build → deploy_production (manuel)
+#
+# 3. Surveillez la pipeline:
+#    - Allez sur GitLab > Votre projet > CI/CD > Pipelines
+#    - Cliquez sur un pipeline pour voir les détails
+#    - Vérifiez les logs de chaque étape
+#
+# ========================================
