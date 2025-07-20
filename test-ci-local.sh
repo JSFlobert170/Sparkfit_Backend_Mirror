@@ -36,11 +36,11 @@ if [ ! -f "package.json" ]; then
 fi
 print_success "Fichier package.json trouvé"
 
-if [ ! -f "prisma/schema.prisma" ]; then
-    print_error "Fichier prisma/schema.prisma non trouvé"
+if [ ! -f "../sparkfit_prisma-schema/schema.prisma" ]; then
+    print_error "Fichier ../sparkfit_prisma-schema/schema.prisma non trouvé"
     exit 1
 fi
-print_success "Fichier prisma/schema.prisma trouvé"
+print_success "Fichier ../sparkfit_prisma-schema/schema.prisma trouvé"
 
 echo ""
 echo "🧪 Test 1: Installation des dépendances"
@@ -54,10 +54,31 @@ else
 fi
 
 echo ""
-echo "🔧 Test 2: Génération Prisma"
-echo "---------------------------"
+echo "🔧 Test 2: Configuration Prisma"
+echo "------------------------------"
 
-if npx prisma generate; then
+# Créer le répertoire prisma et copier les fichiers
+print_success "Création du répertoire prisma"
+mkdir -p prisma
+
+print_success "Copie du schéma Prisma"
+if cp ../sparkfit_prisma-schema/schema.prisma prisma/; then
+    print_success "Schéma Prisma copié"
+else
+    print_error "Échec de la copie du schéma"
+    exit 1
+fi
+
+print_success "Copie des migrations"
+if cp -r ../sparkfit_prisma-schema/migrations prisma/; then
+    print_success "Migrations copiées"
+else
+    print_error "Échec de la copie des migrations"
+    exit 1
+fi
+
+print_success "Génération du client Prisma"
+if npx prisma generate --schema=./prisma/schema.prisma; then
     print_success "Client Prisma généré"
 else
     print_error "Échec de la génération Prisma"
@@ -78,9 +99,15 @@ echo ""
 echo "🐳 Test 4: Construction Docker"
 echo "-----------------------------"
 
-if docker build -t sparkfit-backend:test .; then
+# Aller au répertoire parent pour simuler le contexte de build
+print_success "Changement vers le répertoire parent"
+cd ..
+
+print_success "Construction de l'image Docker"
+if docker build -t sparkfit-backend:test -f sparkfit_backend/Dockerfile .; then
     print_success "Image Docker construite"
     
+    print_success "Test de l'image Docker"
     if docker run --rm sparkfit-backend:test node --version; then
         print_success "Image Docker fonctionne"
     else
@@ -92,6 +119,19 @@ else
     print_error "Échec de la construction Docker"
 fi
 
+# Retourner au répertoire backend
+cd sparkfit_backend
+
+echo ""
+echo "🧹 Nettoyage"
+echo "------------"
+
+# Supprimer le répertoire prisma temporaire
+if [ -d "prisma" ]; then
+    print_success "Suppression du répertoire prisma temporaire"
+    rm -rf prisma
+fi
+
 echo ""
 echo "🎉 Résumé"
 echo "========="
@@ -99,6 +139,6 @@ print_success "Configuration CI/CD prête !"
 echo ""
 echo "💡 Prochaines étapes :"
 echo "1. git add ."
-echo "2. git commit -m 'Fix Prisma schema and tests'"
+echo "2. git commit -m 'Configuration GitLab CI/CD avec structure originale'"
 echo "3. git push origin develop"
 echo "4. Vérifiez sur GitLab : CI/CD > Pipelines" 

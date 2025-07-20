@@ -7,10 +7,6 @@ variables:
   APP_NAME: "sparkfit-backend"
 
 test:
-  only:
-    - develop
-    - main
-    - pipeline
   stage: test
   image: $NODE_IMAGE
   services:
@@ -25,13 +21,19 @@ test:
     PORT: "3001"
   script:
     - echo "Debut des tests"
+    - echo "Repertoire actuel: $PWD"
+    - echo "Installation des dependances backend"
     - npm ci
+    - echo "Copie du schema Prisma"
+    - mkdir -p prisma
+    - cp ../sparkfit_prisma-schema/schema.prisma prisma/
+    - cp -r ../sparkfit_prisma-schema/migrations prisma/
     - echo "Generation client Prisma"
-    - npx prisma generate
+    - npx prisma generate --schema=./prisma/schema.prisma
     - echo "Attente de PostgreSQL"
     - sleep 10
     - echo "Migrations"
-    - npx prisma migrate deploy
+    - npx prisma migrate deploy --schema=./prisma/schema.prisma
     - echo "Tests"
     - npm test
     - echo "Tests termines"
@@ -41,10 +43,6 @@ test:
     expire_in: 1 week
 
 build:
-  only:
-    - develop
-    - main
-    - pipeline
   stage: build
   image: docker:20.10.16
   services:
@@ -56,8 +54,10 @@ build:
     DOCKER_CERT_PATH: "$CI_PROJECT_DIR/certs/client"
   script:
     - echo "Construction Docker"
-    - docker build -t $APP_NAME:$CI_COMMIT_SHORT_SHA .
-    - docker build -t $APP_NAME:latest .
+    - echo "Contexte de build: $CI_PROJECT_DIR"
+    - cd ..
+    - docker build -t $APP_NAME:$CI_COMMIT_SHORT_SHA -f sparkfit_backend/Dockerfile .
+    - docker build -t $APP_NAME:latest -f sparkfit_backend/Dockerfile .
     - echo "Images construites"
     - docker images | grep $APP_NAME
     - echo "Test image"
