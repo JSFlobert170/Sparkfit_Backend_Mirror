@@ -27,28 +27,21 @@ before_script:
   - npm ci
   - until pg_isready -h postgres -p 5432 -U $POSTGRES_USER; do echo "Waiting for postgres..."; sleep 2; done
 
-
 generate:
   stage: prepare
   script:
-    - apt-get update && apt-get install -y postgresql-client
-    - until pg_isready -h postgres -p 5432 -U myuser; do echo "Waiting for Postgres..."; sleep 2; done
     - git clone https://JSFlobert:glpat-hQtGYoDCnKN97RZkMCUo@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
     - mkdir -p prisma
     - cp sparkfit_prisma-schema/schema.prisma prisma/
     - cp -r sparkfit_prisma-schema/migrations prisma/
     - rm -rf sparkfit_prisma-schema
     - npx prisma generate --schema=prisma/schema.prisma
-    - until pg_isready -h postgres -p 5432 -U myuser; do echo "Waiting for Postgres..."; sleep 2; done
-
 
 test:
   stage: test
   needs: [generate]
-  variables:
-    DATABASE_URL: $DATABASE_URL
   script:
-    - echo DATABASE_URL
+    - echo $DATABASE_URL
     - ls -la node_modules/.prisma/client
     - npm test
 
@@ -57,7 +50,7 @@ migrate:
   needs: [generate]
   script:
     - apt-get update && apt-get install -y postgresql-client
-    - until pg_isready -h postgres -p 5432 -U myuser; do echo "Waiting for Postgres..."; sleep 2; done
+    - until pg_isready -h postgres -p 5432 -U $POSTGRES_USER; do echo "Waiting for Postgres..."; sleep 2; done
     - npx prisma migrate deploy --schema=prisma/schema.prisma
 
 build:
