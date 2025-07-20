@@ -29,10 +29,11 @@ before_script:
 generate:
   stage: prepare
   script:
+    - ls -la
+    - ls -la sparkfit_prisma-schema
     - mkdir -p prisma
     - cp ./sparkfit_prisma-schema/schema.prisma prisma/
-    - cp -r ./sparkfit_prisma-schema/migrations prisma/
-    - npx prisma generate --schema=../prisma/schema.prisma
+    - npx prisma generate --schema=prisma/schema.prisma
 
 test:
   stage: test
