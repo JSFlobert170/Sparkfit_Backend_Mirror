@@ -15,45 +15,53 @@ async function hashPassword(password) {
 
 exports.register = async (req, res, next) => {
     const { username, email, password, user_type, phone, profile_picture, profile } = req.body;
-    let existingUserByPhone = null;
-    let existingUserByEmail = null;
-    let existingUserName = null;
-    
-
 
     if (!username || !password || (!email && !phone)) {
-        return res.json({
+        return res.status(400).json({
             status: 400,
-            message: "Missing required fields",
+            message: "Missing required fields"
         });
     }
 
-// Ajouter ici d'autres validations selon les besoins, par exemple :
-// - Vérifier le format de l'email
-// - Vérifier la complexité du mot de passe
     try {
+        // Vérifier si l'utilisateur existe déjà
         if (email) {
-            existingUserByEmail = await prisma.user.findUnique({
-                where: { email: email },
+            const existingUserByEmail = await prisma.user.findUnique({
+                where: { email: email }
             });
-        }  
+            
+            if (existingUserByEmail) {
+                return res.status(409).json({
+                    status: 409,
+                    message: "email already exists",
+                    data: email
+                });
+            }
+        }
+
+        const existingUserName = await prisma.user.findUnique({
+            where: { username: username }
+        });
         
-        if (phone) {
-            existingUserByPhone = await prisma.user.findUnique({
-                where: { phone: phone },
+        if (existingUserName) {
+            return res.status(409).json({
+                status: 409,
+                message: "username already exists"
             });
         }
 
-        existingUserName = await prisma.user.findUnique({
-            where: { username: username },
-        });
-        if (existingUserName) return res.json({status: 409, message: "username already exists"});
-        if (existingUserByEmail || existingUserByPhone) {
-            return res.json({
-                status: 409,
-                message: (existingUserByEmail ? "email" : "phone number") + " already exists",
-                data: existingUserByEmail ? email : phone,
+        if (phone) {
+            const existingUserByPhone = await prisma.user.findUnique({
+                where: { phone: phone }
             });
+            
+            if (existingUserByPhone) {
+                return res.status(409).json({
+                    status: 409,
+                    message: "phone number already exists",
+                    data: phone
+                });
+            }
         }
 
         const newUser = await prisma.user.create({
@@ -71,22 +79,21 @@ exports.register = async (req, res, next) => {
             include:{
                 profile: true
             }
-          });
-        return res.json({
-            message: "User resgistered successfully",
-            status: 201,
-            data: newUser,
         });
-        // senderEmail(newUser);
+
+        // Retirer le mot de passe de la réponse
+        const { password: _, ...userWithoutPassword } = newUser;
+
+        return res.status(201).json({
+            status: 201,
+            message: "User registered successfully",
+            data: userWithoutPassword
+        });
     } catch (err) {
-        // if (error.code === "P2002") { // Code d'erreur pour la violation de contrainte unique
-        //     return res.json({ 
-        //       status: 409,
-        //       message: "A user with this email already exists." });
-        //   }
-          return res.json({ 
-            status: err.status,
-            message: err.message 
+        console.error('Registration error:', err);
+        return res.status(500).json({
+            status: 500,
+            message: err.message || "Error during registration"
         });
     }
 };

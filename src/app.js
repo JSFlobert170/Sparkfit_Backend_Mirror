@@ -4,23 +4,40 @@ const routes = require("./routes");
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./utils/swagger');
 const dotenv = require("dotenv");
-dotenv.config();
+const performanceMetricsMiddleware = require('./middlewares/performanceMetrics');
+const { errorHandler } = require('./middlewares/errorHandler');
 const logger = require("./utils/logger");
+require('./postgresConnection');
+
+// Importer les registres de métriques
+const { register } = require('./metrics/performanceMetrics');
+
+dotenv.config();
 
 const app = express();
+
+// Middlewares
 app.use(express.json());
-
-// parse urlencoded request body
 app.use(express.urlencoded({ extended: true }));
-
-//access to public folder
 app.use(express.static(__dirname + "/public"));
-
-// Enable CORS for all routes
 app.use(cors());
+
+// Middleware de métriques
+app.use(performanceMetricsMiddleware);
 
 // Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
+
+// Route pour les métriques
+app.get('/api/metrics', async (req, res) => {
+    try {
+        const metrics = await register.metrics();
+        res.set('Content-Type', register.contentType);
+        res.end(metrics);
+    } catch (err) {
+        res.status(500).end(err);
+    }
+});
 
 // initial route
 app.get("/", (req, res) => {
@@ -30,10 +47,15 @@ app.get("/", (req, res) => {
 // api routes prefix
 app.use("/api", routes);
 
-// run server
-app.listen(process.env.PORT || 3000, () => {
-    // console.log("Starting server...");
-    logger.info(`Server is running on http://localhost:${process.env.PORT || 3000}`)
-});
+// Middleware de gestion des erreurs
+app.use(errorHandler);
 
+// Exporter l'app pour les tests
 module.exports = app;
+
+// Démarrer le serveur seulement si ce n'est pas un import pour les tests
+if (require.main === module) {
+app.listen(process.env.PORT || 3000, () => {
+    logger.info(`Server is running on http://localhost:${process.env.PORT || 3000}`);
+});
+}

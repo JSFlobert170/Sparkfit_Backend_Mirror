@@ -1,28 +1,28 @@
-# Utiliser l'image officielle Node.js comme image de base
 FROM node:18-alpine
 
-# Définir le répertoire de travail dans le conteneur
 WORKDIR /app
 
-# Copier les fichiers package.json et package-lock.json
-COPY package*.json ./
+# Copier le package.json depuis le répertoire backend
+COPY sparkfit_backend/package*.json ./
 
-# Installer les dépendances du projet
 RUN npm install
 
-COPY prisma ./prisma/
+# Copier le code source du backend
+COPY sparkfit_backend/ .
 
-# Copier tous les fichiers locaux dans le conteneur
-COPY . .
+# Copier le schéma Prisma depuis la racine
+COPY sparkfit_prisma-schema/schema.prisma ./prisma/schema.prisma
+COPY sparkfit_prisma-schema/migrations ./prisma/migrations
+
+# Générer le client Prisma
+RUN npx prisma generate --schema=./prisma/schema.prisma
 
 # Copier le script d'entrée et le rendre exécutable
-COPY entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY sparkfit_backend/start.sh /app/start.sh
+RUN chmod +x /app/start.sh
 
 # Exposer le port sur lequel votre app va tourner
 EXPOSE 3000
 
 # Commande pour démarrer votre application
-# CMD ["node", "src/app.js"]
-CMD ["/bin/sh", "entrypoint.sh"]
-
+CMD ["/app/start.sh"]

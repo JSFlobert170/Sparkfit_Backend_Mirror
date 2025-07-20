@@ -1,19 +1,22 @@
-const { Pool } = require('pg');
+const { PrismaClient } = require('@prisma/client');
 const logger = require('./utils/logger');
 
-// Configuration du pool de connexions PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL//, // Assurez-vous que cette variable d'environnement est définie
-//   ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false
-});
-
-// Test de la connexion dès l'importation
-pool.connect(err => {
-  if (err) {
-    logger.error('Erreur de connexion à la base de données', err.stack);
-  } else {
-    logger.info('Connecté à la base de données');
+// Configuration de Prisma avec le schéma centralisé
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL
+    }
   }
 });
 
-module.exports = pool;
+// Test de la connexion dès l'importation
+prisma.$connect()
+  .then(() => {
+    logger.info('Connecté à la base de données via Prisma');
+  })
+  .catch((err) => {
+    logger.error('Erreur de connexion à la base de données', err);
+});
+
+module.exports = prisma;
