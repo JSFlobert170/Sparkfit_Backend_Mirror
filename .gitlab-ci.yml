@@ -22,7 +22,7 @@ cache:
     - node_modules/
 
 before_script:
-  - npm ci
+  # - npm ci
 
 test:
   stage: test
