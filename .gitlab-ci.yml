@@ -38,7 +38,6 @@ generate:
     - cp -r sparkfit_prisma-schema/migrations prisma/
     - rm -rf sparkfit_prisma-schema
     - npx prisma generate --schema=prisma/schema.prisma
-    - npx prisma migrate dev --name migration
   artifacts:
     paths:
       - prisma
@@ -47,11 +46,7 @@ test:
   stage: test
   needs: [generate]
   script:
-    - ls -la prisma/ 
-    - npx prisma generate --schema=prisma/schema.prisma
     - npx prisma migrate dev --name migration
-    - echo "DATABASE_URL=$DATABASE_URL"
-    - ls -la node_modules/.prisma/client
     - npm test 
   dependencies:
     - generate
