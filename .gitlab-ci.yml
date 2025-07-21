@@ -28,6 +28,8 @@ before_script:
 
 generate:
   stage: prepare
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
   script:
     - git clone https://JSFlobert:glpat-hQtGYoDCnKN97RZkMCUo@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
     - mkdir -p prisma
@@ -43,7 +45,9 @@ generate:
 
 test:
   stage: test
-  needs: [generate] 
+  needs: [generate]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
   script:
     - npx prisma migrate dev --name migration
     - npm test 
@@ -54,7 +58,7 @@ build:
   stage: build
   needs: [test]
   rules:
-    - if: '$CI_COMMIT_BRANCH == "develop"'
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
   script:
     - echo "Build"
     # build

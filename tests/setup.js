@@ -1,11 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL
-    }
-  }
-});
+const prisma = new PrismaClient();
 const app = require('../src/app');
 const { cleanupInterval } = require('../src/controllers/login.controller');
 let server;
