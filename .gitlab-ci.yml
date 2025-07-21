@@ -31,7 +31,8 @@ generate:
   stage: prepare
   script:
     # - git clone https://JSFlobert:glpat-hQtGYoDCnKN97RZkMCUo@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
-    # - mkdir -p prisma
+    - mkdir -p prisma
+    - echo $POSTGRES_USER
     # - cp sparkfit_prisma-schema/schema.prisma prisma/
     # - cp -r sparkfit_prisma-schema/migrations prisma/
     # - rm -rf sparkfit_prisma-schema
