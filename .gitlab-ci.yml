@@ -49,7 +49,7 @@ test:
     # - cp -r sparkfit_prisma-schema/migrations prisma/
     - rm -rf sparkfit_prisma-schema
     - npx prisma generate --schema=prisma/schema.prisma
-    - npx prisma migrate dev --name migration
+    - npx prisma migrate deploy --schema=prisma/schema.prisma
     - ls -la prisma/
     - echo "DATABASE_URL=$DATABASE_URL"
     - ls -la node_modules/.prisma/client
