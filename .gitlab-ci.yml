@@ -30,18 +30,6 @@ before_script:
 generate:
   stage: prepare
   script:
-    # - git clone https://JSFlobert:glpat-hQtGYoDCnKN97RZkMCUo@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
-    - mkdir -p prisma
-    - echo $POSTGRES_USER
-    # - cp sparkfit_prisma-schema/schema.prisma prisma/
-    # - cp -r sparkfit_prisma-schema/migrations prisma/
-    # - rm -rf sparkfit_prisma-schema
-    # - npx prisma generate --schema=prisma/schema.prisma
-
-test:
-  stage: test
-  needs: [generate]
-  script:
     - git clone https://JSFlobert:glpat-hQtGYoDCnKN97RZkMCUo@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
     - mkdir -p prisma
     - cp sparkfit_prisma-schema/schema.prisma prisma/
@@ -51,10 +39,20 @@ test:
     - rm -rf sparkfit_prisma-schema
     - npx prisma generate --schema=prisma/schema.prisma
     - npx prisma migrate dev --name migration
+  artifacts:
+    paths:
+      - prisma
+
+test:
+  stage: test
+  needs: [generate]
+  script:
     - ls -la prisma/ 
     - echo "DATABASE_URL=$DATABASE_URL"
     - ls -la node_modules/.prisma/client
     - npm test 
+  dependencies:
+    - generate
 
 migrate:
   stage: migrate
