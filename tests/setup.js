@@ -1,5 +1,11 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL
+    }
+  }
+});
 const app = require('../src/app');
 const { cleanupInterval } = require('../src/controllers/login.controller');
 let server;
@@ -12,6 +18,7 @@ process.env.PORT = '3001';
 beforeAll(async () => {
   // Vérifier la connexion à la base de données
   try {
+    console.log('DATABASE_URL:', process.env.DATABASE_URL);
     await prisma.$connect();
     server = app.listen(process.env.PORT);
   } catch (error) {
