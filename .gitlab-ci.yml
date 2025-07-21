@@ -43,7 +43,7 @@ generate:
 
 test:
   stage: test
-  needs: [generate]
+  needs: [generate] 
   script:
     - npx prisma migrate dev --name migration
     - npm test 
