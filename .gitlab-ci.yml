@@ -58,21 +58,21 @@ build:
   script:
     # build
 
-merge-main:
-  stage: merge-main
-  needs: [build]
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop"'
-  script:
-    - apk add --no-cache git curl  # ou apt-get selon image
-    - git config --global user.email "ci-bot@example.com"
-    - git config --global user.name "CI Bot"
-    # Authentification avec token personnel GitLab (mettre dans CI/CD variables: GITLAB_TOKEN)
-    - git remote set-url origin https://oauth2:${GITLAB_TOKEN}@gitlab.com/ton-namespace/ton-projet.git
-    - git fetch origin
-    - git checkout main
-    - git merge origin/develop --no-ff -m "Merge automatique de develop vers main"
-    - git push origin main
+# merge-main:
+#   stage: merge-main
+#   needs: [build]
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "develop"'
+#   script:
+#     - apk add --no-cache git curl  # ou apt-get selon image
+#     - git config --global user.email "ci-bot@example.com"
+#     - git config --global user.name "CI Bot"
+#     # Authentification avec token personnel GitLab (mettre dans CI/CD variables: GITLAB_TOKEN)
+#     - git remote set-url origin https://oauth2:${GITLAB_TOKEN}@gitlab.com/ton-namespace/ton-projet.git
+#     - git fetch origin
+#     - git checkout main
+#     - git merge origin/develop --no-ff -m "Merge automatique de develop vers main"
+#     - git push origin main
 
 deploy:
   stage: deploy
