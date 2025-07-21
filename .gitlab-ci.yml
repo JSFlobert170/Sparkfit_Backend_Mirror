@@ -14,7 +14,6 @@ variables:
 stages:
   - prepare
   - test
-  - migrate
   - build
   - deploy
 
@@ -51,23 +50,33 @@ test:
   dependencies:
     - generate
 
-migrate:
-  stage: migrate
-  needs: [generate]
-  script:
-    - apt-get update && apt-get install -y postgresql-client
-    - until pg_isready -h postgres -p 5432 -U $POSTGRES_USER; do echo "Waiting for Postgres..."; sleep 2; done
-    - npx prisma migrate deploy --schema=prisma/schema.prisma
-
 build:
   stage: build
-  needs: [generate]
+  needs: [test]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop"'
   script:
-    - npx prisma generate --schema=prisma/schema.prisma
-    - npm run build
+    # build
+
+merge-main:
+  stage: merge-main
+  needs: [build]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+  script:
+    - apk add --no-cache git curl  # ou apt-get selon image
+    - git config --global user.email "ci-bot@example.com"
+    - git config --global user.name "CI Bot"
+    # Authentification avec token personnel GitLab (mettre dans CI/CD variables: GITLAB_TOKEN)
+    - git remote set-url origin https://oauth2:${GITLAB_TOKEN}@gitlab.com/ton-namespace/ton-projet.git
+    - git fetch origin
+    - git checkout main
+    - git merge origin/develop --no-ff -m "Merge automatique de develop vers main"
+    - git push origin main
 
 deploy:
   stage: deploy
-  when: manual
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
   script:
-    - echo "Déploiement manuel à adapter"
+    # deploy ou docker-build + deploy
