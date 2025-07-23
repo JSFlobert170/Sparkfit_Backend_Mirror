@@ -5,10 +5,6 @@ services:
     alias: postgres
 
 variables:
-  POSTGRES_DB: mydatabase
-  POSTGRES_USER: myuser
-  POSTGRES_PASSWORD: mypassword
-  DATABASE_URL: 'postgresql://myuser:mypassword@postgres:5432/mydatabase?schema=public'
   NODE_ENV: test
 
 stages:
@@ -32,7 +28,7 @@ generate:
   rules:
     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
   script:
-    - git clone https://JSFlobert:glpat-hQtGYoDCnKN97RZkMCUo@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
+    - git clone https://$GITLAB_USERt:GITLAB_TOKEN@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
     - mkdir -p prisma
     - cp sparkfit_prisma-schema/schema.prisma prisma/
     - ls -la prisma/
@@ -50,12 +46,23 @@ eslint:
   rules:
     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
   script:
+    - echo "Linting code with ESLint..."
     - npm run lint
+  allow_failure: false
+
+prettier:
+  stage: lint
+  needs: [generate]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
+  script:
+    - echo "Checking code format with Prettier..."
+    - npm run format:check
   allow_failure: false
 
 test:
   stage: test
-  needs: [generate]
+  needs: [eslint, generate]
   rules:
     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
   script:
