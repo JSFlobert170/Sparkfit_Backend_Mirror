@@ -13,6 +13,7 @@ stages:
   - test
   - build
   - deploy
+  - release
 
 cache:
   paths:
@@ -28,7 +29,7 @@ generate:
   rules:
     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
   script:
-    - git clone https://JSFlobert:glpat-hQtGYoDCnKN97RZkMCUo@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
+    - git clone https://$GITLAB_USERt:$GITLAB_TOKEN@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
     - mkdir -p prisma
     - cp sparkfit_prisma-schema/schema.prisma prisma/
     - ls -la prisma/
@@ -103,3 +104,13 @@ deploy:
   script:
     - echo "Deploy"
     # deploy ou docker-build + deploy
+
+release:
+  stage: release
+  image: node:18
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - npx semantic-release
+  only:
+    - main
