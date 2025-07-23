@@ -5,7 +5,6 @@ services:
     alias: postgres
 
 variables:
-  POSTGRES_USER: myuser
   NODE_ENV: test
 
 stages:
@@ -14,7 +13,6 @@ stages:
   - test
   - build
   - deploy
-  - release
 
 cache:
   paths:
@@ -30,7 +28,7 @@ generate:
   rules:
     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
   script:
-    - git clone https://$GITLAB_USERt:$GITLAB_TOKEN@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
+    - git clone https://JSFlobert:glpat-hQtGYoDCnKN97RZkMCUo@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
     - mkdir -p prisma
     - cp sparkfit_prisma-schema/schema.prisma prisma/
     - ls -la prisma/
@@ -105,120 +103,3 @@ deploy:
   script:
     - echo "Deploy"
     # deploy ou docker-build + deploy
-
-image: node:18
-
-services:
-  - name: postgres:15-alpine
-    alias: postgres
-
-variables:
-  NODE_ENV: test
-
-stages:
-  - prepare
-  - lint
-  - test
-  - build
-  - deploy
-  - release
-
-cache:
-  paths:
-    - node_modules/
-
-before_script:
-  - apt-get update && apt-get install -y postgresql-client
-  - npm ci
-  - until pg_isready -h postgres -p 5432 -U $POSTGRES_USER; do echo "Waiting for postgres..."; sleep 2; done
-
-generate:
-  stage: prepare
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
-  script:
-    - git clone https://$GITLAB_USERt:GITLAB_TOKEN@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
-    - mkdir -p prisma
-    - cp sparkfit_prisma-schema/schema.prisma prisma/
-    - ls -la prisma/
-    - cat prisma/schema.prisma
-    - cp -r sparkfit_prisma-schema/migrations prisma/
-    - rm -rf sparkfit_prisma-schema
-    - npx prisma generate --schema=prisma/schema.prisma
-  artifacts:
-    paths:
-      - prisma
-
-eslint:
-  stage: lint
-  needs: [generate]
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
-  script:
-    - echo "Linting code with ESLint..."
-    - npm run lint
-  allow_failure: false
-
-prettier:
-  stage: lint
-  needs: [generate]
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
-  script:
-    - echo "Checking code format with Prettier..."
-    - npm run format:check
-  allow_failure: false
-
-test:
-  stage: test
-  needs: [eslint, generate]
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
-  script:
-    - npx prisma migrate dev --name migration
-    - npm test
-  dependencies:
-    - generate
-
-build:
-  stage: build
-  needs: [test]
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
-  script:
-    - echo "Build"
-    # build
-
-# merge-main:
-#   stage: merge-main
-#   needs: [build]
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "develop"'
-#   script:
-#     - apk add --no-cache git curl  # ou apt-get selon image
-#     - git config --global user.email "ci-bot@example.com"
-#     - git config --global user.name "CI Bot"
-#     # Authentification avec token personnel GitLab (mettre dans CI/CD variables: GITLAB_TOKEN)
-#     - git remote set-url origin https://oauth2:${GITLAB_TOKEN}@gitlab.com/ton-namespace/ton-projet.git
-#     - git fetch origin
-#     - git checkout main
-#     - git merge origin/develop --no-ff -m "Merge automatique de develop vers main"
-#     - git push origin main
-
-deploy:
-  stage: deploy
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-  script:
-    - echo "Deploy"
-    # deploy ou docker-build + deploy
-
-release:
-  stage: release
-  image: node:18
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-  script:
-    - npx semantic-release
-  only:
-    - main
