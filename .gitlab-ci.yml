@@ -6,6 +6,10 @@ services:
 
 variables:
   NODE_ENV: test
+  POSTGRES_DB: mydatabase
+  POSTGRES_USER: myuser
+  POSTGRES_PASSWORD: mypassword
+  DATABASE_URL: 'postgresql://myuser:mypassword@postgres:5432/mydatabase?schema=public'
 
 stages:
   - prepare
