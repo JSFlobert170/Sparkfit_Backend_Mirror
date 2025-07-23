@@ -21,5 +21,4 @@ npx prisma migrate reset
 npx prisma studio
 ```
 
-
 test 1

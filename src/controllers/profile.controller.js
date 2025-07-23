@@ -2,6 +2,8 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 exports.getUserProfile = async (req, res, next) => {
+  const x = 5;
+  console.log(x);
   try {
     const { userId } = req.params;
     const id = userId;
@@ -9,34 +11,33 @@ exports.getUserProfile = async (req, res, next) => {
     if (!id || !userTokenId) {
       return res.json({
         status: 400,
-        message: "Id is required",
+        message: 'Id is required',
       });
     }
-  if (id != req.userToken.id && req.userToken.admin != true) {
-    return res.json({
+    if (id != req.userToken.id && req.userToken.admin != true) {
+      return res.json({
         status: 401,
-        message: "Unauthorized",
-    });
-  }
+        message: 'Unauthorized',
+      });
+    }
     const userProfile = await prisma.profile.findUnique({
       where: { user_id: parseInt(id) },
     });
     if (!userProfile) {
       return res.json({
         status: 404,
-        message: "User profile not found",
+        message: 'User profile not found',
       });
-  }
-      return res.json({
-        status  : 200,  
-        message : "Successfully retrieved user profile",
-        data : userProfile
-      });
-
+    }
+    return res.json({
+      status: 200,
+      message: 'Successfully retrieved user profile',
+      data: userProfile,
+    });
   } catch (err) {
     return res.json({
       status: err.status,
-      message: err.message || "Bad request",
+      message: err.message || 'Bad request',
     });
   }
 };
@@ -45,39 +46,40 @@ exports.updateUserProfile = async (req, res, next) => {
   const { userId } = req.params;
   const id = userId;
   const userTokenId = req.userToken.id;
-  const { age, weight, height, fitness_goal, goal_detail, intensity } = req.body;
+  const { age, weight, height, fitness_goal, goal_detail, intensity } =
+    req.body;
   try {
     if (!id || !userTokenId || !req.body) {
       return res.json({
         status: 400,
-        message: "Id is required",
+        message: 'Id is required',
       });
     }
     if (id != req.userToken.id && req.userToken.admin != true) {
       return res.json({
-          status: 401,
-          message: "Unauthorized",
+        status: 401,
+        message: 'Unauthorized',
       });
     }
-      const updatedUserProfile = await prisma.profile.update({
-        where: { user_id: parseInt(id) },
-        data: { age, weight, height, fitness_goal, goal_detail, intensity },
-      });
-      if (!updatedUserProfile) {
-        return res.json({
-          status: 404,
-          message: "User profile is not found",
-        });
-      }
+    const updatedUserProfile = await prisma.profile.update({
+      where: { user_id: parseInt(id) },
+      data: { age, weight, height, fitness_goal, goal_detail, intensity },
+    });
+    if (!updatedUserProfile) {
       return res.json({
-        status  : 200,
-        message : "Successfully updated user profile",
-        data : updatedUserProfile
+        status: 404,
+        message: 'User profile is not found',
       });
+    }
+    return res.json({
+      status: 200,
+      message: 'Successfully updated user profile',
+      data: updatedUserProfile,
+    });
   } catch (err) {
     return res.json({
       status: err.status,
-      message: err.message || "Bad request",
+      message: err.message || 'Bad request',
     });
   }
 };
@@ -89,38 +91,37 @@ exports.deleteUserProfile = async (req, res, next) => {
   if (!id || !userTokenId) {
     return res.json({
       status: 400,
-      message: "Id is required",
+      message: 'Id is required',
     });
   }
   if (id != req.userToken.id && req.userToken.admin != true) {
     return res.json({
-        status: 401,
-        message: "Unauthorized",
+      status: 401,
+      message: 'Unauthorized',
     });
   }
-    try {
-      const deletedUserProfile = await prisma.profile.delete({
-        where: { user_id: parseInt(id) },
-      });
-      if (!deletedUserProfile) {
-        return res.json({
-          status: 404,
-          message: "User profile not found or already deleted",
-        });
-    }
+  try {
+    const deletedUserProfile = await prisma.profile.delete({
+      where: { user_id: parseInt(id) },
+    });
+    if (!deletedUserProfile) {
       return res.json({
-        status  : 204,
-        message : "Successfully deleted user profile",
-        data : deletedUserProfile
+        status: 404,
+        message: 'User profile not found or already deleted',
       });
+    }
+    return res.json({
+      status: 204,
+      message: 'Successfully deleted user profile',
+      data: deletedUserProfile,
+    });
   } catch (err) {
     return res.json({
       status: err.status,
-      message: err.message || "Bad request",
+      message: err.message || 'Bad request',
     });
   }
 };
-
 
 // a reflechir pas encore utiliser
 // exports.getUsersProfile = async (req, res, next) => {
@@ -157,7 +158,7 @@ exports.deleteUserProfile = async (req, res, next) => {
 //   const { age, weight, height, fitness_goal, goal_detail } = req.body;
 
 //   if(!age || !weight || !height || !fitness_goal || !goal_detail){
-//     return res.json({ 
+//     return res.json({
 //       status: 400,
 //       message: "Please provide all the required fields" });
 //   }
@@ -190,7 +191,7 @@ exports.deleteUserProfile = async (req, res, next) => {
 //       data: addProfile
 //   });
 //   } catch (error) {
-//     res.status(500).json({ 
+//     res.status(500).json({
 //       status: error.status || 500,
 //       message: error.message || "Failed to create profile",
 //      });

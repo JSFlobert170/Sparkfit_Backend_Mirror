@@ -8,11 +8,12 @@ variables:
   POSTGRES_DB: mydatabase
   POSTGRES_USER: myuser
   POSTGRES_PASSWORD: mypassword
-  DATABASE_URL: "postgresql://myuser:mypassword@postgres:5432/mydatabase?schema=public"
+  DATABASE_URL: 'postgresql://myuser:mypassword@postgres:5432/mydatabase?schema=public'
   NODE_ENV: test
 
 stages:
   - prepare
+  - lint
   - test
   - build
   - deploy
@@ -43,6 +44,15 @@ generate:
     paths:
       - prisma
 
+eslint:
+  stage: lint
+  needs: [generate]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
+  script:
+    - npm run lint
+  allow_failure: false
+
 test:
   stage: test
   needs: [generate]
@@ -50,7 +60,7 @@ test:
     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
   script:
     - npx prisma migrate dev --name migration
-    - npm test 
+    - npm test
   dependencies:
     - generate
 

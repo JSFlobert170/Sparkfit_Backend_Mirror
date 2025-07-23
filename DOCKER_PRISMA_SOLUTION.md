@@ -3,12 +3,14 @@
 ## 🐛 Problème Résolu
 
 ### Erreur Initiale
+
 ```
 ERROR [7/9] COPY ../../sparkfit_prisma-schema ./prisma
 failed to solve: failed to compute cache key: failed to calculate checksum of ref qkoyhsjj5puila4owt8285ywa::tr8vsftx6vq32lkn3lprabazj: "/sparkfit_prisma-schema": not found
 ```
 
 ### Cause du Problème
+
 Docker ne peut pas copier des fichiers en dehors du contexte de build. Le répertoire `sparkfit_prisma-schema` se trouve à la racine du projet, mais le Dockerfile est dans le répertoire `sparkfit_backend`.
 
 ## ✅ Solution Implémentée
@@ -16,11 +18,13 @@ Docker ne peut pas copier des fichiers en dehors du contexte de build. Le réper
 ### Approche : Contexte de Build à la Racine
 
 #### 1. Dockerfile Modifié
+
 - Utilise le contexte de build à la racine du projet
 - Copie les fichiers depuis les bons chemins relatifs
 - Accède directement au schéma Prisma
 
 #### 2. Script de Build (`build-docker.sh`)
+
 - Construit l'image avec le contexte à la racine
 - Gère automatiquement les chemins
 - Options pour tag, push et registry
@@ -66,6 +70,7 @@ MVP/
 ## 🔧 Fonctionnement du Dockerfile
 
 ### Étapes de Construction
+
 ```dockerfile
 # 1. Copier package.json depuis le backend
 COPY sparkfit_backend/package*.json ./
@@ -85,6 +90,7 @@ RUN npx prisma generate --schema=./prisma/schema.prisma
 ```
 
 ### Avantages
+
 - ✅ **Accès direct** au schéma Prisma
 - ✅ **Pas de copie préalable** nécessaire
 - ✅ **Build optimisé** avec .dockerignore
@@ -93,11 +99,13 @@ RUN npx prisma generate --schema=./prisma/schema.prisma
 ## 📊 Optimisations
 
 ### .dockerignore à la Racine
+
 - Exclut les services non nécessaires
 - Réduit la taille du contexte de build
 - Améliore les performances
 
 ### Fichiers Exclus
+
 ```
 sparkfit_frontend/           # Frontend non nécessaire
 sparkfit_service_ia/         # Services séparés
@@ -113,6 +121,7 @@ sparkfit_service_paiment/
 ### Problèmes Courants
 
 #### Erreur "package.json not found"
+
 ```bash
 # Vérifier que le script est exécuté depuis sparkfit_backend
 pwd
@@ -123,6 +132,7 @@ ls -la package.json
 ```
 
 #### Erreur "schema.prisma not found"
+
 ```bash
 # Vérifier que le schéma existe à la racine
 ls -la ../sparkfit_prisma-schema/schema.prisma
@@ -132,6 +142,7 @@ ls -la ../
 ```
 
 #### Erreur de Build Docker
+
 ```bash
 # Build avec logs détaillés
 ./build-docker.sh 2>&1 | tee build.log
@@ -156,6 +167,7 @@ docker inspect sparkfit-backend:latest
 ## 🔄 Intégration CI/CD
 
 ### GitLab CI
+
 ```yaml
 build:
   script:
@@ -164,6 +176,7 @@ build:
 ```
 
 ### GitHub Actions
+
 ```yaml
 - name: Build Docker
   run: |
@@ -172,6 +185,7 @@ build:
 ```
 
 ### Docker Compose
+
 ```yaml
 version: '3.8'
 services:
@@ -180,18 +194,20 @@ services:
       context: .
       dockerfile: sparkfit_backend/Dockerfile
     ports:
-      - "3000:3000"
+      - '3000:3000'
 ```
 
 ## 📈 Métriques
 
 ### Performance
+
 - **Taille du contexte** : ~1MB (optimisé avec .dockerignore)
 - **Temps de build** : ~15-20 secondes
 - **Taille de l'image** : ~997MB
 - **Couches Docker** : Optimisées
 
 ### Sécurité
+
 - **Contexte limité** : Seulement les fichiers nécessaires
 - **Pas de secrets** : Variables d'environnement uniquement
 - **Utilisateur non-root** : Recommandé pour la production
@@ -199,6 +215,7 @@ services:
 ## ✅ Validation
 
 ### Tests Effectués
+
 - ✅ Build Docker réussi
 - ✅ Schéma Prisma copié correctement
 - ✅ Client Prisma généré
@@ -206,6 +223,7 @@ services:
 - ✅ Script de build opérationnel
 
 ### Commandes de Test
+
 ```bash
 # Test de build
 ./build-docker.sh
@@ -220,12 +238,14 @@ docker inspect sparkfit-backend:latest
 ## 🔮 Évolutions Futures
 
 ### Améliorations Possibles
+
 1. **Multi-stage build** : Réduire la taille finale
 2. **Cache optimisé** : Améliorer les temps de build
 3. **Sécurité renforcée** : Utilisateur non-root
 4. **Health checks** : Vérification de l'état
 
 ### Intégrations
+
 1. **Docker Compose** : Orchestration complète
 2. **Kubernetes** : Déploiement en cluster
 3. **Registry privé** : Gestion des images
@@ -234,12 +254,14 @@ docker inspect sparkfit-backend:latest
 ## 📞 Support
 
 ### En Cas de Problème
+
 1. Vérifier la structure du projet
 2. Contrôler les logs de build
 3. Valider les chemins dans le Dockerfile
 4. Consulter cette documentation
 
 ### Ressources
+
 - Documentation Docker officielle
 - Guide Prisma
 - Scripts de build personnalisés
@@ -248,4 +270,4 @@ docker inspect sparkfit-backend:latest
 
 **Solution créée pour SparkFit Backend**
 **Problème résolu** : Intégration Prisma dans Docker
-**Dernière mise à jour** : $(date) 
+**Dernière mise à jour** : $(date)

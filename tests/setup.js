@@ -31,4 +31,4 @@ afterAll(async () => {
   if (cleanupInterval) {
     clearInterval(cleanupInterval);
   }
-}); 
+});

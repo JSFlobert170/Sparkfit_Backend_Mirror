@@ -13,7 +13,7 @@ describe('Auth Endpoints', () => {
       prisma.Workout.deleteMany(),
       prisma.Exercise.deleteMany(),
       prisma.Profile.deleteMany(),
-      prisma.User.deleteMany()
+      prisma.User.deleteMany(),
     ]);
   });
 
@@ -24,7 +24,7 @@ describe('Auth Endpoints', () => {
       prisma.Workout.deleteMany(),
       prisma.Exercise.deleteMany(),
       prisma.Profile.deleteMany(),
-      prisma.User.deleteMany()
+      prisma.User.deleteMany(),
     ]);
     await prisma.$disconnect();
   });
@@ -40,13 +40,11 @@ describe('Auth Endpoints', () => {
           age: 25,
           weight: 70,
           height: 175,
-          fitness_goal: 'WEIGHT_LOSS'
-        }
+          fitness_goal: 'WEIGHT_LOSS',
+        },
       };
 
-      const res = await request(app)
-        .post('/api/auth/register')
-        .send(validUser);
+      const res = await request(app).post('/api/auth/register').send(validUser);
 
       expect(res.body.status).toBe(201);
       expect(res.body.data).toHaveProperty('user_id');
@@ -54,16 +52,14 @@ describe('Auth Endpoints', () => {
       expect(res.body.data).not.toHaveProperty('password');
       expect(res.body.data.profile).toMatchObject({
         age: validUser.profile.age,
-        weight: validUser.profile.weight
+        weight: validUser.profile.weight,
       });
     });
 
     it('should return 400 for missing required fields', async () => {
-      const res = await request(app)
-        .post('/api/auth/register')
-        .send({
-          email: 'test_missing@test.com'
-        });
+      const res = await request(app).post('/api/auth/register').send({
+        email: 'test_missing@test.com',
+      });
 
       expect(res.body.status).toBe(400);
       expect(res.body.message).toBe('Missing required fields');
@@ -74,20 +70,18 @@ describe('Auth Endpoints', () => {
         username: 'testuser_duplicate',
         email: 'test_duplicate1@test.com',
         password: 'Password123!',
-        user_type: 'user'
+        user_type: 'user',
       };
 
       // Créer le premier utilisateur
-      await request(app)
-        .post('/api/auth/register')
-        .send(validUser);
+      await request(app).post('/api/auth/register').send(validUser);
 
       // Essayer de créer un deuxième utilisateur avec le même username
       const res = await request(app)
         .post('/api/auth/register')
         .send({
           ...validUser,
-          email: 'test_duplicate2@test.com'
+          email: 'test_duplicate2@test.com',
         });
 
       expect(res.body.status).toBe(409);
@@ -99,20 +93,18 @@ describe('Auth Endpoints', () => {
         username: 'testuser_email1',
         email: 'test_email@test.com',
         password: 'Password123!',
-        user_type: 'user'
+        user_type: 'user',
       };
 
       // Créer le premier utilisateur
-      await request(app)
-        .post('/api/auth/register')
-        .send(validUser);
+      await request(app).post('/api/auth/register').send(validUser);
 
       // Essayer de créer un deuxième utilisateur avec le même email
       const res = await request(app)
         .post('/api/auth/register')
         .send({
           ...validUser,
-          username: 'testuser_email2'
+          username: 'testuser_email2',
         });
 
       expect(res.body.status).toBe(409);
@@ -126,36 +118,30 @@ describe('Auth Endpoints', () => {
         username: 'testuser_login',
         email: 'test_login@test.com',
         password: 'Password123!',
-        user_type: 'user'
+        user_type: 'user',
       };
 
       // Créer l'utilisateur d'abord
-      await request(app)
-        .post('/api/auth/register')
-        .send(validUser);
+      await request(app).post('/api/auth/register').send(validUser);
 
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: validUser.email,
-          password: validUser.password
-        });
+      const res = await request(app).post('/api/auth/login').send({
+        email: validUser.email,
+        password: validUser.password,
+      });
 
       expect(res.body.status).toBe(200);
       expect(res.body).toHaveProperty('token');
-      
+
       const decoded = jwt.verify(res.body.token, process.env.JWT_SECRET);
       expect(decoded).toHaveProperty('id');
       expect(decoded).toHaveProperty('email', validUser.email);
     });
 
     it('should return 404 for non-existent user', async () => {
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: 'nonexistent@test.com',
-          password: 'Password123!'
-        });
+      const res = await request(app).post('/api/auth/login').send({
+        email: 'nonexistent@test.com',
+        password: 'Password123!',
+      });
 
       expect(res.body.status).toBe(404);
       expect(res.body.message).toBe('User is not found');
@@ -166,31 +152,25 @@ describe('Auth Endpoints', () => {
         username: 'testuser_wrongpass',
         email: 'test_wrongpass@test.com',
         password: 'Password123!',
-        user_type: 'user'
+        user_type: 'user',
       };
 
       // Créer l'utilisateur d'abord
-      await request(app)
-        .post('/api/auth/register')
-        .send(validUser);
+      await request(app).post('/api/auth/register').send(validUser);
 
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: validUser.email,
-          password: 'WrongPassword123!'
-        });
+      const res = await request(app).post('/api/auth/login').send({
+        email: validUser.email,
+        password: 'WrongPassword123!',
+      });
 
       expect(res.body.status).toBe(401);
       expect(res.body.message).toBe('Incorrect password');
     });
 
     it('should return 400 for missing credentials', async () => {
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: 'test_missing_creds@test.com'
-        });
+      const res = await request(app).post('/api/auth/login').send({
+        email: 'test_missing_creds@test.com',
+      });
 
       expect(res.body.status).toBe(400);
       expect(res.body.message).toBe('Missing email or password');
@@ -203,20 +183,16 @@ describe('Auth Endpoints', () => {
         username: 'testuser_logout',
         email: 'test_logout@test.com',
         password: 'Password123!',
-        user_type: 'user'
+        user_type: 'user',
       };
 
       // Créer l'utilisateur et se connecter
-      await request(app)
-        .post('/api/auth/register')
-        .send(validUser);
+      await request(app).post('/api/auth/register').send(validUser);
 
-      const loginRes = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: validUser.email,
-          password: validUser.password
-        });
+      const loginRes = await request(app).post('/api/auth/login').send({
+        email: validUser.email,
+        password: validUser.password,
+      });
 
       const authToken = loginRes.body.token;
 
@@ -236,5 +212,4 @@ describe('Auth Endpoints', () => {
       expect(res.body.status).toBe(401);
     });
   });
-
-}); 
+});
