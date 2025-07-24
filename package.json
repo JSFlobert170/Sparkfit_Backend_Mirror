@@ -7,11 +7,15 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "jest --detectOpenHandles --forceExit",
-    "test:coverage": "jest --coverage --detectOpenHandles --forceExit",
     "prestart": "npx prisma generate --schema=./prisma/schema.prisma && npx prisma migrate dev --name migration",
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "jest --detectOpenHandles --forceExit",
+    "test:coverage": "jest --coverage --detectOpenHandles --forceExit",
     "prisma:generate": "cd ../prisma && npm run generate",
     "prisma:migrate": "cd ../prisma && npm run migrate:dev",
     "prisma:studio": "cd ../prisma && npm run studio"
@@ -32,8 +36,18 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.31.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/gitlab": "^12.1.1",
+    "@semantic-release/npm": "^11.0.3",
+    "eslint": "^9.31.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.3",
     "jest": "^29.7.0",
+    "prettier": "^3.6.2",
     "prisma": "^6.10.1",
+    "semantic-release": "^22.0.12",
     "supertest": "^6.3.4"
   },
   "jest": {

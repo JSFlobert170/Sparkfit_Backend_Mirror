@@ -1,14 +1,14 @@
-const express = require("express");
-const router = express.Router({ mergeParams: true });  // Importe les paramètres des parents
-const checkJWT = require("../middlewares/checkJWT");
-const profileController = require("../controllers/profile.controller");
+const express = require('express');
+const router = express.Router({ mergeParams: true }); // Importe les paramètres des parents
+const checkJWT = require('../middlewares/checkJWT');
+const profileController = require('../controllers/profile.controller');
 
 // router.get("/profiles", checkJWT, profileController.getUsersProfile);
 // router.post("/:id/profile",checkJWT, profileController.addProfile);
 // router.delete("/", checkJWT, profileController.deleteUserProfile);
 
-router.get("/:userId/profile/",checkJWT, profileController.getUserProfile);
-router.put("/:userId/profile/", checkJWT, profileController.updateUserProfile);
+router.get('/:userId/profile/', checkJWT, profileController.getUserProfile);
+router.put('/:userId/profile/', checkJWT, profileController.updateUserProfile);
 
 module.exports = router;
 

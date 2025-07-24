@@ -1,12 +1,12 @@
-const express = require("express");
-const cors = require("cors");
-const routes = require("./routes");
+const express = require('express');
+const cors = require('cors');
+const routes = require('./routes');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./utils/swagger');
-const dotenv = require("dotenv");
+const dotenv = require('dotenv');
 const performanceMetricsMiddleware = require('./middlewares/performanceMetrics');
 const { errorHandler } = require('./middlewares/errorHandler');
-const logger = require("./utils/logger");
+const logger = require('./utils/logger');
 require('./postgresConnection');
 
 // Importer les registres de métriques
@@ -19,7 +19,7 @@ const app = express();
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname + "/public"));
+app.use(express.static(__dirname + '/public'));
 app.use(cors());
 
 // Middleware de métriques
@@ -30,22 +30,22 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // Route pour les métriques
 app.get('/api/metrics', async (req, res) => {
-    try {
-        const metrics = await register.metrics();
-        res.set('Content-Type', register.contentType);
-        res.end(metrics);
-    } catch (err) {
-        res.status(500).end(err);
-    }
+  try {
+    const metrics = await register.metrics();
+    res.set('Content-Type', register.contentType);
+    res.end(metrics);
+  } catch (err) {
+    res.status(500).end(err);
+  }
 });
 
 // initial route
-app.get("/", (req, res) => {
-    res.send({ message: "Welcome to the application." });
+app.get('/', (req, res) => {
+  res.send({ message: 'Welcome to the application.' });
 });
 
 // api routes prefix
-app.use("/api", routes);
+app.use('/api', routes);
 
 // Middleware de gestion des erreurs
 app.use(errorHandler);
@@ -55,7 +55,9 @@ module.exports = app;
 
 // Démarrer le serveur seulement si ce n'est pas un import pour les tests
 if (require.main === module) {
-app.listen(process.env.PORT || 3000, () => {
-    logger.info(`Server is running on http://localhost:${process.env.PORT || 3000}`);
-});
+  app.listen(process.env.PORT || 3000, () => {
+    logger.info(
+      `Server is running on http://localhost:${process.env.PORT || 3000}`
+    );
+  });
 }

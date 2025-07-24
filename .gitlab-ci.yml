@@ -1,0 +1,102 @@
+image: node:18
+
+services:
+  - name: postgres:15-alpine
+    alias: postgres
+
+variables:
+  NODE_ENV: test
+  POSTGRES_DB: mydatabase
+  POSTGRES_USER: myuser
+  POSTGRES_PASSWORD: mypassword
+  DATABASE_URL: 'postgresql://myuser:mypassword@postgres:5432/mydatabase?schema=public'
+
+stages:
+  - prepare
+  - lint
+  - test
+  - build
+  - deploy
+  - release
+
+cache:
+  paths:
+    - node_modules/
+
+before_script:
+  - apt-get update && apt-get install -y postgresql-client
+  - npm ci
+  - until pg_isready -h postgres -p 5432 -U $POSTGRES_USER; do echo "Waiting for postgres..."; sleep 2; done
+
+generate:
+  stage: prepare
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
+  script:
+    - git clone https://$GITLAB_USER:$GITLAB_TOKEN@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
+    - mkdir -p prisma
+    - cp sparkfit_prisma-schema/schema.prisma prisma/
+    - cp -r sparkfit_prisma-schema/migrations prisma/
+    - rm -rf sparkfit_prisma-schema
+    - ls -la prisma/
+    - cat prisma/schema.prisma
+    - npx prisma generate --schema=prisma/schema.prisma
+  artifacts:
+    paths:
+      - prisma
+
+eslint:
+  stage: lint
+  needs: [generate]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
+  script:
+    - echo "Linting code with ESLint..."
+    - npm run lint
+  allow_failure: false
+
+prettier:
+  stage: lint
+  needs: [generate]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
+  script:
+    - echo "Checking code format with Prettier..."
+    - npm run format:check
+  allow_failure: false
+
+test:
+  stage: test
+  needs: [eslint, generate]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
+  script:
+    - npx prisma migrate dev --name migration
+    - npm test
+  dependencies:
+    - generate
+
+build:
+  stage: build
+  needs: [test]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
+  script:
+    - echo "Build step"
+    # npm run build (décommente si tu as un build)
+
+deploy:
+  stage: deploy
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - echo "Deploy step"
+    # docker build + docker push ou npm run deploy
+
+release:
+  stage: release
+  image: node:18
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - npx semantic-release
