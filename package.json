@@ -6,6 +6,12 @@
   "author": "",
   "type": "commonjs",
   "main": "index.js",
+  "release": {
+    "branches": [
+      "main",
+      "develop"
+    ]
+  },
   "scripts": {
     "prestart": "npx prisma generate --schema=./prisma/schema.prisma && npx prisma migrate dev --name migration",
     "start": "node src/app.js",
@@ -17,8 +23,13 @@
     "test": "jest --detectOpenHandles --forceExit",
     "test:coverage": "jest --coverage --detectOpenHandles --forceExit",
     "prisma:generate": "cd ../prisma && npm run generate",
-    "prisma:migrate": "cd ../prisma && npm run migrate:dev",
-    "prisma:studio": "cd ../prisma && npm run studio"
+    "prisma:migrate": "cd ../prisma && npm run migrate dev --name migration",
+    "prisma:studio": "cd ../prisma && npm run studio",
+    "prisma:check": "cd ../prisma && npx prisma validate",
+    "deps:update": "npm update",
+    "deps:audit": "npm audit --production",
+    "deps:outdated": "npm outdated",
+    "deps:check": "npm run deps:audit && npm run deps:outdated"
   },
   "dependencies": {
     "@prisma/client": "^6.10.1",

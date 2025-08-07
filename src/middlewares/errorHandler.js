@@ -7,7 +7,14 @@ const limiter = rateLimit({
   max: 100, // Limite chaque IP à 100 requêtes par fenêtre
   message: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard',
   handler: (req, res) => {
-    rateLimitHits.labels(req.path).inc();
+    try {
+      if (rateLimitHits && typeof rateLimitHits.labels === 'function') {
+        rateLimitHits.labels(req.path).inc();
+      }
+    } catch (err) {
+      console.error('Erreur Prometheus rateLimitHits:', err.message);
+    }
+    res.set('Retry-After', Math.ceil(15 * 60)); // en secondes
     res.status(429).json({
       status: 429,
       message: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard',

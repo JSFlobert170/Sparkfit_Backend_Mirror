@@ -1,0 +1,15 @@
+merge_requests:
+  approvals:
+    # Nombre minimal d'approbations requises
+    required: 1
+    # Utilisateurs ou groupes autorisés à approuver
+    approvers:
+      - '@dev-team'
+    # Branches où l'approbation est obligatoire
+    branches:
+      - main
+      - develop
+    # Empêche le merge si la pipeline échoue
+    merge_when_pipeline_succeeds: true
+    # Bloque le merge sans approbation
+    reset_approvals_on_push: true
