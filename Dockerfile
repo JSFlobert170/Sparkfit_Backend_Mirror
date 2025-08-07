@@ -2,29 +2,27 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copier le package.json depuis le répertoire backend
-COPY sparkfit_backend/package*.json ./
+# Install git for cloning the prisma repo
+RUN apk add --no-cache git
 
+# Copy backend package files and install deps
+COPY sparkfit_backend/package*.json ./
 RUN npm install
 
-# Copier le code source du backend
+# Copy backend source
 COPY sparkfit_backend/ .
 
-RUN mkdir -p prisma
-# Copier le schéma Prisma depuis la racine
-COPY sparkfit_prisma-schema/schema.prisma ./prisma/
-# COPY sparkfit_prisma-schema/migrations ./prisma/migrations
+# Clone centralized prisma repo
+RUN git clone https://oauth2:${GITLAB_TOKEN}@gitlab.com/JSFlobert/sparkfit_prisma-schema.git \
+  && mkdir -p prisma \
+  && cp sparkfit_prisma-schema/schema.prisma prisma/ \
+  && rm -rf sparkfit_prisma-schema
 
-# Générer le client Prisma
-# RUN npx prisma generate --schema=./prisma/schema.prisma
-# RUN npx prisma migrate dev --schema=./prisma/schema.prisma --name migrations
+# Generate prisma client
+RUN npx prisma generate --schema=prisma/schema.prisma
 
-# Copier le script d'entrée et le rendre exécutable
-COPY sparkfit_backend/entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+# Entrypoint
+RUN chmod +x ./entrypoint.sh
 
-# Exposer le port sur lequel votre app va tourner
 EXPOSE 3000
-
-# Commande pour démarrer votre application
-CMD ["/app/entrypoint.sh"]
+CMD ["sh", "./entrypoint.sh"]
