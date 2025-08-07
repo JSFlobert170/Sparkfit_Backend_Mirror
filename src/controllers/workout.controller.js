@@ -2,81 +2,248 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { workoutMetrics } = require('../metrics/workoutMetrics');
 
+// exports.createWorkout = async (req, res) => {
+//   const userId = Number(req.userToken.id);
+//   const startTime = process.hrtime();
+
+//   console.log('Creating workout for user ID:', userId, 'Type:', typeof userId);
+
+//   try {
+//     // Vérifier si l'utilisateur existe
+//     const user = await prisma.User.findUnique({
+//       where: { user_id: userId },
+//     });
+
+//     if (!user) {
+//       return res.status(404).json({
+//         status: 404,
+//         message: 'User not found',
+//       });
+//     }
+
+//     // Vérifier si nous recevons un plan IA
+//     if (req.body.plan && Array.isArray(req.body.plan)) {
+//       console.log('Processing AI generated plan');
+//       const planData = req.body.plan;
+
+//       // Traiter chaque workout du plan
+//       const createdWorkouts = await Promise.all(
+//         planData.map(async (workout) => {
+//           const workoutDetails =
+//             workout.details?.map((detail) => ({
+//               sets: detail.sets || 0,
+//               reps: detail.reps || 0,
+//               weight: detail.weight || 0,
+//               completed: false,
+//               completed_sets: 0,
+//               completed_reps: 0,
+//               completed_weight: 0,
+//               exercise: {
+//                 connectOrCreate: {
+//                   where: {
+//                     name_goal_type: {
+//                       name: detail.exercise.name,
+//                       goal_type: detail.exercise.goal_type || 'GENERAL',
+//                     },
+//                   },
+//                   create: {
+//                     name: detail.exercise.name,
+//                     description: detail.exercise.description || '',
+//                     video_url: detail.exercise.video_url || '',
+//                     goal_type: detail.exercise.goal_type || 'GENERAL',
+//                   },
+//                 },
+//               },
+//             })) || [];
+
+//           return await prisma.Workout.create({
+//             data: {
+//               user_id: userId,
+//               name: workout.name,
+//               date: new Date(workout.date),
+//               duration: workout.duration || 0,
+//               calories_burned: workout.calories_burned || 0,
+//               details: {
+//                 create: workoutDetails,
+//               },
+//             },
+//             include: {
+//               details: {
+//                 include: {
+//                   exercise: true,
+//                 },
+//               },
+//             },
+//           });
+//         })
+//       );
+
+//       return res.status(201).json({
+//         status: 201,
+//         message: "Plan d'entraînement créé avec succès",
+//         data: createdWorkouts[0],
+//       });
+//     }
+
+//     // Traitement d'un workout unique
+//     const { date, duration, calories_burned, details, name } = req.body;
+
+//     if (!date || !name) {
+//       return res.status(400).json({
+//         status: 400,
+//         message: 'La date et le nom du workout sont requis',
+//       });
+//     }
+
+//     const detailsData =
+//       details?.map((detail) => ({
+//         sets: detail.sets || 0,
+//         reps: detail.reps || 0,
+//         weight: detail.weight || 0,
+//         completed: false,
+//         completed_sets: 0,
+//         completed_reps: 0,
+//         completed_weight: 0,
+//         exercise: {
+//           connectOrCreate: {
+//             where: {
+//               name_goal_type: {
+//                 name: detail.exercise.name,
+//                 goal_type: detail.exercise.goal_type || 'GENERAL',
+//               },
+//             },
+//             create: {
+//               name: detail.exercise.name,
+//               description: detail.exercise.description || '',
+//               video_url: detail.exercise.video_url || '',
+//               goal_type: detail.exercise.goal_type || 'GENERAL',
+//             },
+//           },
+//         },
+//       })) || [];
+
+//     const result = await prisma.Workout.create({
+//       data: {
+//         user_id: userId,
+//         name,
+//         date: new Date(date),
+//         duration: duration || 0,
+//         calories_burned: calories_burned || 0,
+//         details: {
+//           create: detailsData,
+//         },
+//       },
+//       include: {
+//         details: {
+//           include: {
+//             exercise: true,
+//           },
+//         },
+//       },
+//     });
+
+//     // Métriques après la création réussie
+//     workoutMetrics.creationTotal.inc();
+//     if (duration) {
+//       workoutMetrics.duration.observe(duration);
+//     }
+//     if (calories_burned) {
+//       workoutMetrics.caloriesBurned.observe(calories_burned);
+//     }
+
+//     // Mesurer la latence
+//     const [seconds, nanoseconds] = process.hrtime(startTime);
+//     const requestDuration = seconds + nanoseconds / 1e9;
+//     workoutMetrics.apiLatency.observe(
+//       { endpoint: '/api/workouts', method: 'POST' },
+//       requestDuration
+//     );
+
+//     return res.status(201).json({
+//       status: 201,
+//       message: 'Workout créé avec succès',
+//       data: result,
+//     });
+//   } catch (err) {
+//     console.error('Erreur création workout:', err);
+
+//     // Incrémenter le compteur d'erreurs
+//     workoutMetrics.apiErrors.inc({
+//       endpoint: '/api/workouts',
+//       method: 'POST',
+//       status: 500,
+//     });
+
+//     return res.status(500).json({
+//       status: 500,
+//       message: 'Erreur lors de la création du workout: ' + err.message,
+//     });
+//   }
+// };
+
 exports.createWorkout = async (req, res) => {
   const userId = Number(req.userToken.id);
   const startTime = process.hrtime();
 
-  console.log('Creating workout for user ID:', userId, 'Type:', typeof userId);
-
   try {
-    // Vérifier si l'utilisateur existe
+    // 1) Vérifier que l’utilisateur existe
     const user = await prisma.User.findUnique({
       where: { user_id: userId },
     });
-
     if (!user) {
-      return res.status(404).json({
-        status: 404,
-        message: 'User not found',
-      });
+      return res.status(404).json({ status: 404, message: 'User not found' });
     }
 
-    // Vérifier si nous recevons un plan IA
+    // 2) Si on a un plan IA (array), on crée tout en transaction
     if (req.body.plan && Array.isArray(req.body.plan)) {
-      console.log('Processing AI generated plan');
       const planData = req.body.plan;
 
-      // Traiter chaque workout du plan
-      const createdWorkouts = await Promise.all(
-        planData.map(async (workout) => {
-          const workoutDetails =
-            workout.details?.map((detail) => ({
-              sets: detail.sets || 0,
-              reps: detail.reps || 0,
-              weight: detail.weight || 0,
-              completed: false,
-              completed_sets: 0,
-              completed_reps: 0,
-              completed_weight: 0,
-              exercise: {
-                connectOrCreate: {
-                  where: {
-                    name_goal_type: {
-                      name: detail.exercise.name,
-                      goal_type: detail.exercise.goal_type || 'GENERAL',
-                    },
-                  },
-                  create: {
-                    name: detail.exercise.name,
-                    description: detail.exercise.description || '',
-                    video_url: detail.exercise.video_url || '',
-                    goal_type: detail.exercise.goal_type || 'GENERAL',
+      // Préparation des opérations
+      const ops = planData.map((workout) => {
+        const details =
+          workout.details?.map((d) => ({
+            sets: d.sets || 0,
+            reps: d.reps || 0,
+            weight: d.weight || 0,
+            completed: false,
+            completed_sets: 0,
+            completed_reps: 0,
+            completed_weight: 0,
+            exercise: {
+              connectOrCreate: {
+                where: {
+                  name_goal_type: {
+                    name: d.exercise.name,
+                    goal_type: d.exercise.goal_type || 'GENERAL',
                   },
                 },
+                create: {
+                  name: d.exercise.name,
+                  description: d.exercise.description || '',
+                  video_url: d.exercise.video_url || '',
+                  goal_type: d.exercise.goal_type || 'GENERAL',
+                },
               },
-            })) || [];
+            },
+          })) || [];
 
-          return await prisma.Workout.create({
-            data: {
-              user_id: userId,
-              name: workout.name,
-              date: new Date(workout.date),
-              duration: workout.duration || 0,
-              calories_burned: workout.calories_burned || 0,
-              details: {
-                create: workoutDetails,
-              },
-            },
-            include: {
-              details: {
-                include: {
-                  exercise: true,
-                },
-              },
-            },
-          });
-        })
-      );
+        return prisma.Workout.create({
+          data: {
+            user_id: userId,
+            name: workout.name,
+            date: new Date(workout.date),
+            duration: workout.duration || 0,
+            calories_burned: workout.calories_burned || 0,
+            details: { create: details },
+          },
+          include: {
+            details: { include: { exercise: true } },
+          },
+        });
+      });
+
+      // Exécution en une seule transaction
+      const createdWorkouts = await prisma.$transaction(ops);
 
       return res.status(201).json({
         status: 201,
@@ -85,10 +252,9 @@ exports.createWorkout = async (req, res) => {
       });
     }
 
-    // Traitement d'un workout unique
-    const { date, duration, calories_burned, details, name } = req.body;
-
-    if (!date || !name) {
+    // 3) Sinon on crée un workout simple (sérialisé)
+    const { name, date, duration, calories_burned, details } = req.body;
+    if (!name || !date) {
       return res.status(400).json({
         status: 400,
         message: 'La date et le nom du workout sont requis',
@@ -96,10 +262,10 @@ exports.createWorkout = async (req, res) => {
     }
 
     const detailsData =
-      details?.map((detail) => ({
-        sets: detail.sets || 0,
-        reps: detail.reps || 0,
-        weight: detail.weight || 0,
+      details?.map((d) => ({
+        sets: d.sets || 0,
+        reps: d.reps || 0,
+        weight: d.weight || 0,
         completed: false,
         completed_sets: 0,
         completed_reps: 0,
@@ -108,15 +274,15 @@ exports.createWorkout = async (req, res) => {
           connectOrCreate: {
             where: {
               name_goal_type: {
-                name: detail.exercise.name,
-                goal_type: detail.exercise.goal_type || 'GENERAL',
+                name: d.exercise.name,
+                goal_type: d.exercise.goal_type || 'GENERAL',
               },
             },
             create: {
-              name: detail.exercise.name,
-              description: detail.exercise.description || '',
-              video_url: detail.exercise.video_url || '',
-              goal_type: detail.exercise.goal_type || 'GENERAL',
+              name: d.exercise.name,
+              description: d.exercise.description || '',
+              video_url: d.exercise.video_url || '',
+              goal_type: d.exercise.goal_type || 'GENERAL',
             },
           },
         },
@@ -129,34 +295,21 @@ exports.createWorkout = async (req, res) => {
         date: new Date(date),
         duration: duration || 0,
         calories_burned: calories_burned || 0,
-        details: {
-          create: detailsData,
-        },
+        details: { create: detailsData },
       },
       include: {
-        details: {
-          include: {
-            exercise: true,
-          },
-        },
+        details: { include: { exercise: true } },
       },
     });
 
-    // Métriques après la création réussie
+    // 4) Metriques & latence
     workoutMetrics.creationTotal.inc();
-    if (duration) {
-      workoutMetrics.duration.observe(duration);
-    }
-    if (calories_burned) {
-      workoutMetrics.caloriesBurned.observe(calories_burned);
-    }
-
-    // Mesurer la latence
-    const [seconds, nanoseconds] = process.hrtime(startTime);
-    const requestDuration = seconds + nanoseconds / 1e9;
+    if (duration) workoutMetrics.duration.observe(duration);
+    if (calories_burned) workoutMetrics.caloriesBurned.observe(calories_burned);
+    const [s, ns] = process.hrtime(startTime);
     workoutMetrics.apiLatency.observe(
       { endpoint: '/api/workouts', method: 'POST' },
-      requestDuration
+      s + ns / 1e9
     );
 
     return res.status(201).json({
@@ -167,7 +320,6 @@ exports.createWorkout = async (req, res) => {
   } catch (err) {
     console.error('Erreur création workout:', err);
 
-    // Incrémenter le compteur d'erreurs
     workoutMetrics.apiErrors.inc({
       endpoint: '/api/workouts',
       method: 'POST',

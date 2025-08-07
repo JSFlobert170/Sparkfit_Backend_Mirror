@@ -7,6 +7,8 @@ const dotenv = require('dotenv');
 const performanceMetricsMiddleware = require('./middlewares/performanceMetrics');
 const { errorHandler } = require('./middlewares/errorHandler');
 const logger = require('./utils/logger');
+const { limiter } = require('./middlewares/errorHandler');
+// const healthRoutes = require('./routes/health.js');
 require('./postgresConnection');
 
 // Importer les registres de métriques
@@ -25,8 +27,13 @@ app.use(cors());
 // Middleware de métriques
 app.use(performanceMetricsMiddleware);
 
+app.use(limiter);
+
 // Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
+
+// Route de santé
+// app.use('/health', healthRoutes);
 
 // Route pour les métriques
 app.get('/api/metrics', async (req, res) => {

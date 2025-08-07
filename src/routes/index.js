@@ -6,12 +6,14 @@ const authRoute = require('./auth.route');
 const userRoute = require('./user.route');
 const userProfileRoute = require('./profile.route');
 const workoutRoute = require('./workout.route');
+const healthRoutes = require('./health.js');
 
 router.use(express.json());
 router.use('/auth', authRoute);
 router.use('/user', userRoute);
 router.use('/user', userProfileRoute);
 router.use('/workouts', workoutRoute);
+router.use('/health', healthRoutes);
 
 // Endpoint pour les métriques Prometheus
 router.get('/metrics', async (req, res) => {
