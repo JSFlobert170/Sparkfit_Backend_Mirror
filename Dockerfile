@@ -12,7 +12,7 @@ COPY sparkfit_backend/ .
 
 RUN mkdir -p prisma
 # Copier le schéma Prisma depuis la racine
-COPY sparkfit_prisma-schema/schema.prisma ./prisma/schema.prisma
+COPY sparkfit_prisma-schema/schema.prisma ./prisma/
 # COPY sparkfit_prisma-schema/migrations ./prisma/migrations
 
 # Générer le client Prisma
