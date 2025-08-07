@@ -90,7 +90,6 @@ test:
   dependencies:
     - generate
 
-  stage: test
   script:
     - echo "$CI_REGISTRY"
     - echo "$CI_REGISTRY_USER"
