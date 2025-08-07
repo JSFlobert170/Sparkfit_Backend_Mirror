@@ -78,10 +78,6 @@ prisma_check:
   script:
     - npx prisma validate
     - npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma
-  only:
-    - merge_requests
-    - develop
-    - main
 
 test:
   stage: test
