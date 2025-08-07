@@ -6,12 +6,6 @@
   "author": "",
   "type": "commonjs",
   "main": "index.js",
-  "release": {
-    "branches": [
-      "main",
-      "develop"
-    ]
-  },
   "scripts": {
     "prestart": "npx prisma generate --schema=./prisma/schema.prisma && npx prisma migrate dev --name migration",
     "start": "node src/app.js",
