@@ -17,10 +17,10 @@ stages:
   - prisma-check
   - test
   - security
-  - build
-  - docker-scan
-  # - deploy-staging
-  # - deploy
+  # - build
+  # - docker-scan
+  - deploy-staging
+  - deploy
   # - rollback
   - release
 
