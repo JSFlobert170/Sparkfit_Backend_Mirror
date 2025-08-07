@@ -90,7 +90,6 @@ test:
   dependencies:
     - generate
 
-  debug_vars:
   stage: test
   script:
     - echo "$CI_REGISTRY"
