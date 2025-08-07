@@ -13,7 +13,7 @@ RUN npm install
 COPY sparkfit_backend/ .
 
 # Clone centralized prisma repo
-RUN git clone https://oauth2:${GITLAB_TOKEN}@gitlab.com/JSFlobert/sparkfit_prisma-schema.git \
+RUN git clone https://${GITLAB_USER}:${GITLAB_TOKEN}@gitlab.com/JSFlobert/sparkfit_prisma-schema.git \
   && mkdir -p prisma \
   && cp sparkfit_prisma-schema/schema.prisma prisma/ \
   && rm -rf sparkfit_prisma-schema
@@ -22,7 +22,8 @@ RUN git clone https://oauth2:${GITLAB_TOKEN}@gitlab.com/JSFlobert/sparkfit_prism
 RUN npx prisma generate --schema=prisma/schema.prisma
 
 # Entrypoint
-RUN chmod +x ./entrypoint.sh
+COPY sparkfit_backend/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 3000
-CMD ["sh", "./entrypoint.sh"]
+CMD ["sh", "/app/entrypoint.sh"]
