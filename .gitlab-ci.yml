@@ -97,7 +97,7 @@ test:
 
 dependency_check:
   stage: security
-  image: node:20
+  image: node:18
   script:
     - npm ci
     - npm run deps:update
@@ -142,7 +142,7 @@ dependency_check:
 
 deploy_staging:
   stage: deploy-staging
-  image: curlimages/curl:latest
+  image: node:18
   rules:
     - if: '$CI_COMMIT_BRANCH == "develop"'
   script:
@@ -151,7 +151,7 @@ deploy_staging:
 
 deploy:
   stage: deploy
-  image: curlimages/curl:latest
+  image: node:18
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
   script:
