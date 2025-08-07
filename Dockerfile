@@ -6,11 +6,11 @@ WORKDIR /app
 RUN apk add --no-cache git
 
 # Copy backend package files and install deps
-COPY sparkfit_backend/package*.json ./
+COPY package*.json ./
 RUN npm install
 
 # Copy backend source
-COPY sparkfit_backend/ .
+COPY . .
 
 # Clone centralized prisma repo
 RUN git clone https://${GITLAB_USER}:${GITLAB_TOKEN}@gitlab.com/JSFlobert/sparkfit_prisma-schema.git \
@@ -22,7 +22,7 @@ RUN git clone https://${GITLAB_USER}:${GITLAB_TOKEN}@gitlab.com/JSFlobert/sparkf
 RUN npx prisma generate --schema=prisma/schema.prisma
 
 # Entrypoint
-COPY sparkfit_backend/entrypoint.sh /app/entrypoint.sh
+COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 3000
