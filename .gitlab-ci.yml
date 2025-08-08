@@ -182,6 +182,7 @@ mirror_to_github:
     - echo $GITHUB_TOKEN
     - echo $GITHUB_USER
     - echo ${GITHUB_TOKEN}
+    - echo ${GITHUB_USER}
     - git config --global user.email "flobertjohnson@gmail.com"
     - git config --global user.name "Flobert"
     - git remote add github https://$GITHUB_USER:$GITHUB_TOKEN@github.com/JSFlobert170/SparkFit_Backend.git
