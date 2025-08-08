@@ -187,7 +187,7 @@ mirror_to_github:
     - git config --global user.name "Flobert"
     - git remote add github https://$GITHUB_USER:$GITHUB_TOKEN@github.com/JSFlobert170/SparkFit_Backend.git
     # - git push github HEAD:$CI_COMMIT_REF_NAME
-    - git push github "HEAD:$CI_COMMIT_REF_NAME:$CI_COMMIT_REF_NAME" --force-with-lease
+    - git push github "HEAD:$CI_COMMIT_REF_NAME" --force-with-lease
     - git push --mirror github
 
 release:
