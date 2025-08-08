@@ -22,7 +22,7 @@ stages:
   # - deploy-staging
   # - deploy
   # - rollback
-  - deploy
+  - mirror
   - release
 
 cache:
@@ -174,21 +174,22 @@ cache:
 #     - docker push "$CI_REGISTRY_IMAGE:latest"
 
 mirror_to_github:
-  stage: deploy
-  only:
-    - main
-    - develop
+  stage: mirror
+  image: alpine/git:latest
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+  variables:
+    GIT_DEPTH: '0'
   script:
-    - echo $GITHUB_TOKEN
-    - echo $GITHUB_USER
-    - echo ${GITHUB_TOKEN}
-    - echo ${GITHUB_USER}
-    - git config --global user.email "flobertjohnson@gmail.com"
-    - git config --global user.name "Flobert"
+    - '[ -n "$GITHUB_USER" ] || { echo "GITHUB_USER missing"; exit 1; }'
+    - '[ -n "$GITHUB_TOKEN" ] || { echo "GITHUB_TOKEN missing"; exit 1; }'
+    - git remote remove github || true
     - git remote add github https://$GITHUB_USER:$GITHUB_TOKEN@github.com/JSFlobert170/SparkFit_Backend.git
-    # - git push github HEAD:$CI_COMMIT_REF_NAME
-    - git push github "HEAD:$CI_COMMIT_REF_NAME" --force-with-lease
-    - git push --mirror github
+    # Récupère l’état actuel de la branche distante pour que --force-with-lease sache quoi vérifier
+    - git fetch github "$CI_COMMIT_BRANCH" || true
+    # Pousse le commit courant vers la même branche sur GitHub
+    - git push github "HEAD:$CI_COMMIT_BRANCH" --force-with-lease
 
 release:
   stage: release
