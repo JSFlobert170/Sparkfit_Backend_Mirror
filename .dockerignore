@@ -5,10 +5,14 @@ npm-debug.log
 .env.development
 .env.test
 .env.production
+Dockerfile
+.dockerignore
 logs
 *.log
 coverage
 .DS_Store
 .git
+.gitlab-ci.yml
 .gitignore
+tests
 README.md

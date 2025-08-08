@@ -13,10 +13,11 @@ RUN npm install
 COPY . .
 
 # Clone centralized prisma repo
-RUN git clone https://${GITLAB_USER}:${GITLAB_TOKEN}@gitlab.com/JSFlobert/sparkfit_prisma-schema.git \
+RUN git clone https://${GITLAB_USER}:${GITLAB_TOKEN}@gitlab.com/JSFlobert/sparkfit_prisma-schema.git prisma-source \
   && mkdir -p prisma \
-  && cp sparkfit_prisma-schema/schema.prisma prisma/ \
-  && rm -rf sparkfit_prisma-schema
+  && cp prisma-source/schema.prisma prisma/ \
+  && rm -rf prisma-source
+
 
 # Generate prisma client
 RUN npx prisma generate --schema=prisma/schema.prisma
