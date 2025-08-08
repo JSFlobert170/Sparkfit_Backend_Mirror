@@ -182,6 +182,7 @@ mirror_to_github:
   variables:
     GIT_DEPTH: '0'
   script:
+    - set -euo pipefail
     - apk add --no-cache git
     - '[ -n "$GITHUB_USER" ] || { echo "GITHUB_USER missing"; exit 1; }'
     - '[ -n "$GITHUB_TOKEN" ] || { echo "GITHUB_TOKEN missing"; exit 1; }'
