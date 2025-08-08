@@ -38,8 +38,8 @@ generate:
   rules:
     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
   script:
-    - echo "$TOKEN"
-    - git clone https://oauth2:$TOKEN@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
+    # - git clone https://$GITLAB_USER:$GITLAB_TOKEN@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
+    - git clone https://gitlab.com/JSFlobert/sparkfit_prisma-schema.git
     - mkdir -p prisma
     - cp sparkfit_prisma-schema/schema.prisma prisma/
     - cp -r sparkfit_prisma-schema/migrations prisma/
