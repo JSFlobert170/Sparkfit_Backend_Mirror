@@ -56,6 +56,9 @@ exports.login = async (req, res) => {
       userMetrics.activeUsers.inc();
     }
 
+    // Métriques de connexion
+    userMetrics.loginCount.inc({ user_id: user.user_id.toString() });
+
     return res.status(200).json({
       status: 200,
       message: 'Login successful',

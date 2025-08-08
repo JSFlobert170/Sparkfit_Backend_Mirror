@@ -12,7 +12,7 @@ const { limiter } = require('./middlewares/errorHandler');
 require('./postgresConnection');
 
 // Importer les registres de métriques
-const { register } = require('./metrics/performanceMetrics');
+const { register } = require('./metrics');
 
 dotenv.config();
 
@@ -42,6 +42,7 @@ app.get('/api/metrics', async (req, res) => {
     res.set('Content-Type', register.contentType);
     res.end(metrics);
   } catch (err) {
+    logger.error('Erreur lors de la récupération des métriques:', err);
     res.status(500).end(err);
   }
 });
@@ -65,6 +66,9 @@ if (require.main === module) {
   app.listen(process.env.PORT || 3000, () => {
     logger.info(
       `Server is running on http://localhost:${process.env.PORT || 3000}`
+    );
+    logger.info(
+      `Metrics available at http://localhost:${process.env.PORT || 3000}/api/metrics`
     );
   });
 }

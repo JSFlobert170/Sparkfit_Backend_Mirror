@@ -1,6 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { workoutMetrics } = require('../metrics/workoutMetrics');
+const { workoutMetrics, exerciseMetrics } = require('../metrics');
 
 // exports.createWorkout = async (req, res) => {
 //   const userId = Number(req.userToken.id);
@@ -302,15 +302,35 @@ exports.createWorkout = async (req, res) => {
       },
     });
 
-    // 4) Metriques & latence
-    workoutMetrics.creationTotal.inc();
-    if (duration) workoutMetrics.duration.observe(duration);
-    if (calories_burned) workoutMetrics.caloriesBurned.observe(calories_burned);
-    const [s, ns] = process.hrtime(startTime);
-    workoutMetrics.apiLatency.observe(
-      { endpoint: '/api/workouts', method: 'POST' },
-      s + ns / 1e9
-    );
+    // 4) Métriques & latence
+    workoutMetrics.creationCount.inc({
+      type: 'manual',
+      user_id: userId.toString(),
+    });
+    if (duration) {
+      workoutMetrics.duration.observe(
+        { type: 'manual', user_id: userId.toString() },
+        duration
+      );
+    }
+    if (calories_burned) {
+      workoutMetrics.caloriesBurned.observe(
+        { type: 'manual', user_id: userId.toString() },
+        calories_burned
+      );
+    }
+
+    // Métriques pour les exercices créés
+    if (details && details.length > 0) {
+      details.forEach((detail) => {
+        if (detail.exercise) {
+          exerciseMetrics.creationCount.inc({
+            exercise_name: detail.exercise.name,
+            goal_type: detail.exercise.goal_type || 'GENERAL',
+          });
+        }
+      });
+    }
 
     return res.status(201).json({
       status: 201,
@@ -320,11 +340,8 @@ exports.createWorkout = async (req, res) => {
   } catch (err) {
     console.error('Erreur création workout:', err);
 
-    workoutMetrics.apiErrors.inc({
-      endpoint: '/api/workouts',
-      method: 'POST',
-      status: 500,
-    });
+    // Métriques d'erreur
+    console.error('Erreur création workout:', err);
 
     return res.status(500).json({
       status: 500,
@@ -599,6 +616,9 @@ exports.updateWorkout = async (req, res, next) => {
 
     console.log('Final workout after update:', finalWorkout);
 
+    // Métriques de mise à jour
+    workoutMetrics.updateCount.inc({ user_id: userId.toString() });
+
     return res.status(200).json({
       status: 200,
       message: 'Successfully updated workout',
@@ -649,6 +669,9 @@ exports.deleteWorkout = async (req, res) => {
     await prisma.Workout.delete({
       where: { workout_id: workoutId },
     });
+
+    // Métriques de suppression
+    workoutMetrics.deleteCount.inc({ user_id: userId.toString() });
 
     return res.status(204).send();
   } catch (err) {

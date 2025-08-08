@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const saltRounds = 10;
+const { userMetrics } = require('../metrics');
 
 async function hashPassword(password) {
   try {
@@ -91,6 +92,9 @@ exports.register = async (req, res, next) => {
 
     // Retirer le mot de passe de la réponse
     const { password: _, ...userWithoutPassword } = newUser;
+
+    // Métriques d'inscription
+    userMetrics.registrationCount.inc();
 
     return res.status(201).json({
       status: 201,

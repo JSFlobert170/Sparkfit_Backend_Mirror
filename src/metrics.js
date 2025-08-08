@@ -37,6 +37,22 @@ const workoutMetrics = {
     buckets: [100, 200, 300, 500, 750, 1000],
     registers: [register],
   }),
+
+  // Workouts mis à jour
+  updateCount: new client.Counter({
+    name: 'sparkfit_workouts_updated_total',
+    help: 'Nombre total de workouts mis à jour',
+    labelNames: ['user_id'],
+    registers: [register],
+  }),
+
+  // Workouts supprimés
+  deleteCount: new client.Counter({
+    name: 'sparkfit_workouts_deleted_total',
+    help: 'Nombre total de workouts supprimés',
+    labelNames: ['user_id'],
+    registers: [register],
+  }),
 };
 
 // ===== Métriques des Exercices =====
@@ -63,6 +79,14 @@ const exerciseMetrics = {
     name: 'sparkfit_exercise_completion_rate',
     help: 'Taux de complétion des exercices (%)',
     labelNames: ['exercise_type', 'user_id'],
+    registers: [register],
+  }),
+
+  // Exercices créés
+  creationCount: new client.Counter({
+    name: 'sparkfit_exercises_created_total',
+    help: "Nombre total d'exercices créés",
+    labelNames: ['exercise_name', 'goal_type'],
     registers: [register],
   }),
 };
@@ -93,6 +117,14 @@ const apiMetrics = {
     labelNames: ['endpoint'],
     registers: [register],
   }),
+
+  // Requêtes totales
+  totalRequests: new client.Counter({
+    name: 'sparkfit_api_requests_total',
+    help: 'Nombre total de requêtes',
+    labelNames: ['endpoint', 'method', 'status_code'],
+    registers: [register],
+  }),
 };
 
 // ===== Métriques Utilisateurs =====
@@ -120,6 +152,56 @@ const userMetrics = {
     buckets: [5, 15, 30, 60, 120],
     registers: [register],
   }),
+
+  // Connexions utilisateur
+  loginCount: new client.Counter({
+    name: 'sparkfit_user_logins_total',
+    help: 'Nombre total de connexions utilisateur',
+    labelNames: ['user_id'],
+    registers: [register],
+  }),
+
+  // Inscriptions utilisateur
+  registrationCount: new client.Counter({
+    name: 'sparkfit_user_registrations_total',
+    help: "Nombre total d'inscriptions utilisateur",
+    registers: [register],
+  }),
+};
+
+// ===== Métriques de Base de Données =====
+const dbMetrics = {
+  // Latence des requêtes DB
+  queryLatency: new client.Histogram({
+    name: 'sparkfit_db_query_duration_seconds',
+    help: "Temps d'exécution des requêtes DB en secondes",
+    labelNames: ['query_type', 'table'],
+    buckets: [0.01, 0.05, 0.1, 0.5, 1],
+    registers: [register],
+  }),
+
+  // Connexions actives
+  activeConnections: new client.Gauge({
+    name: 'sparkfit_db_connections_active',
+    help: 'Nombre de connexions actives à la base de données',
+    registers: [register],
+  }),
+
+  // Requêtes totales
+  queryTotal: new client.Counter({
+    name: 'sparkfit_db_queries_total',
+    help: 'Nombre total de requêtes exécutées',
+    labelNames: ['query_type', 'table'],
+    registers: [register],
+  }),
+
+  // Erreurs de base de données
+  queryErrors: new client.Counter({
+    name: 'sparkfit_db_query_errors_total',
+    help: "Nombre total d'erreurs de base de données",
+    labelNames: ['query_type', 'table', 'error_code'],
+    registers: [register],
+  }),
 };
 
 module.exports = {
@@ -128,4 +210,5 @@ module.exports = {
   exerciseMetrics,
   apiMetrics,
   userMetrics,
+  dbMetrics,
 };

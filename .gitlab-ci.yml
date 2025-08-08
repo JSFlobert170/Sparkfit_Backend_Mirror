@@ -17,8 +17,8 @@ stages:
   - prisma-check
   - test
   - security
-  - build
-  - docker-scan
+  # - build
+  # - docker-scan
   # - deploy-staging
   # - deploy
   # - rollback
@@ -111,35 +111,35 @@ dependency_check:
     - develop
   allow_failure: true
 
-docker_scan:
-  stage: docker-scan
-  image: docker:latest
-  services:
-    - docker:dind
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
-  script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
-    - docker build -f sparkfit_backend/Dockerfile -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" .
-    - docker scan --accept-license "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" || true
-  allow_failure: true
-  needs: [build_docker]
+# docker_scan:
+#   stage: docker-scan
+#   image: docker:latest
+#   services:
+#     - docker:dind
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
+#   script:
+#     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+#     - docker build -f sparkfit_backend/Dockerfile -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" .
+#     - docker scan --accept-license "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" || true
+#   allow_failure: true
+#   needs: [build_docker]
 
-build_docker:
-  stage: build
-  needs: [test]
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
-  image: docker:latest
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2375
-    DOCKER_TLS_CERTDIR: ''
-  script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
-    - docker build -f sparkfit_backend/Dockerfile -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" .
-    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+# build_docker:
+#   stage: build
+#   needs: [test]
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
+#   image: docker:latest
+#   services:
+#     - docker:dind
+#   variables:
+#     DOCKER_HOST: tcp://docker:2375
+#     DOCKER_TLS_CERTDIR: ''
+#   script:
+#     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+#     - docker build -f sparkfit_backend/Dockerfile -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" .
+#     - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
 
 # deploy_staging:
 #   stage: deploy-staging
