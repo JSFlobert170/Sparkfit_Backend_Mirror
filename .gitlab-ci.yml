@@ -12,11 +12,11 @@ variables:
   DATABASE_URL: 'postgresql://myuser:mypassword@postgres:5432/mydatabase?schema=public'
 
 stages:
-  # - prepare
-  # - lint
-  # - prisma-check
-  # - test
-  # - security
+  - prepare
+  - lint
+  - prisma-check
+  - test
+  - security
   # - build
   # - docker-scan
   # - deploy-staging
