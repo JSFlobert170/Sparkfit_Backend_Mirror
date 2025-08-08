@@ -10,6 +10,7 @@ variables:
   POSTGRES_USER: myuser
   POSTGRES_PASSWORD: mypassword
   DATABASE_URL: 'postgresql://myuser:mypassword@postgres:5432/mydatabase?schema=public'
+  GITLAB_TOKEN: glpat-JxID7NrD2uDBm7-UNzMd1W86MQp1OmhsaDN1Cw.01.121vw6kdz
 
 stages:
   - prepare
