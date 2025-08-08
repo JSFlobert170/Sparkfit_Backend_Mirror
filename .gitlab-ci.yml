@@ -177,8 +177,11 @@ mirror_to_github:
   stage: mirror
   image: alpine:3.20
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_COMMIT_BRANCH == "develop"'
+    # Push si on est sur main ou develop
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "develop"'
+    # Push si on est sur un tag
+    - if: '$CI_COMMIT_TAG'
   variables:
     GIT_DEPTH: '0'
   script:
@@ -186,10 +189,21 @@ mirror_to_github:
     - apk add --no-cache git
     - '[ -n "$GITHUB_USER" ] || { echo "GITHUB_USER missing"; exit 1; }'
     - '[ -n "$GITHUB_TOKEN" ] || { echo "GITHUB_TOKEN missing"; exit 1; }'
+
     - git remote remove github || true
     - git remote add github "https://$GITHUB_USER:$GITHUB_TOKEN@github.com/JSFlobert170/Sparkfit_Backend_Mirror.git"
-    - git fetch github "$CI_COMMIT_BRANCH" || true
-    - git push github "HEAD:$CI_COMMIT_BRANCH" --force-with-lease
+
+    # Cas branche
+    - if [ -n "${CI_COMMIT_BRANCH:-}" ]; then
+      git fetch github "refs/heads/$CI_COMMIT_BRANCH" || true;
+      git push github "HEAD:refs/heads/$CI_COMMIT_BRANCH" --force-with-lease;
+      fi
+
+    # Cas tag
+    - if [ -n "${CI_COMMIT_TAG:-}" ]; then
+      git fetch github "refs/tags/$CI_COMMIT_TAG" || true;
+      git push github "refs/tags/$CI_COMMIT_TAG:refs/tags/$CI_COMMIT_TAG" --force-with-lease;
+      fi
 
 release:
   stage: release
