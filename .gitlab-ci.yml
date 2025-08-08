@@ -12,11 +12,11 @@ variables:
   DATABASE_URL: 'postgresql://myuser:mypassword@postgres:5432/mydatabase?schema=public'
 
 stages:
-  - prepare
-  - lint
-  - prisma-check
-  - test
-  - security
+  # - prepare
+  # - lint
+  # - prisma-check
+  # - test
+  # - security
   # - build
   # - docker-scan
   # - deploy-staging
@@ -29,88 +29,88 @@ cache:
   paths:
     - node_modules/
 
-before_script:
-  - apt-get update && apt-get install -y postgresql-client
-  - npm ci
-  - until pg_isready -h postgres -p 5432 -U $POSTGRES_USER; do echo "Waiting for postgres..."; sleep 2; done
+# before_script:
+#   - apt-get update && apt-get install -y postgresql-client
+#   - npm ci
+#   - until pg_isready -h postgres -p 5432 -U $POSTGRES_USER; do echo "Waiting for postgres..."; sleep 2; done
 
-generate:
-  stage: prepare
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
-  script:
-    # - git clone https://$GITLAB_USER:$GITLAB_TOKEN@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
-    - git clone https://gitlab.com/JSFlobert/sparkfit_prisma-schema.git
-    - mkdir -p prisma
-    - cp sparkfit_prisma-schema/schema.prisma prisma/
-    - cp -r sparkfit_prisma-schema/migrations prisma/
-    - rm -rf sparkfit_prisma-schema
-    - ls -la prisma/
-    - cat prisma/schema.prisma
-    - npx prisma generate --schema=prisma/schema.prisma
-  artifacts:
-    paths:
-      - prisma
+# generate:
+#   stage: prepare
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
+#   script:
+#     # - git clone https://$GITLAB_USER:$GITLAB_TOKEN@gitlab.com/JSFlobert/sparkfit_prisma-schema.git
+#     - git clone https://gitlab.com/JSFlobert/sparkfit_prisma-schema.git
+#     - mkdir -p prisma
+#     - cp sparkfit_prisma-schema/schema.prisma prisma/
+#     - cp -r sparkfit_prisma-schema/migrations prisma/
+#     - rm -rf sparkfit_prisma-schema
+#     - ls -la prisma/
+#     - cat prisma/schema.prisma
+#     - npx prisma generate --schema=prisma/schema.prisma
+#   artifacts:
+#     paths:
+#       - prisma
 
-eslint:
-  stage: lint
-  needs: [generate]
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
-  script:
-    - echo "Linting code with ESLint..."
-    - npm run lint
-  allow_failure: false
+# eslint:
+#   stage: lint
+#   needs: [generate]
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
+#   script:
+#     - echo "Linting code with ESLint..."
+#     - npm run lint
+#   allow_failure: false
 
-prettier:
-  stage: lint
-  needs: [generate]
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
-  script:
-    - echo "Checking code format with Prettier..."
-    - npm run format:check
-  allow_failure: false
+# prettier:
+#   stage: lint
+#   needs: [generate]
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
+#   script:
+#     - echo "Checking code format with Prettier..."
+#     - npm run format:check
+#   allow_failure: false
 
-prisma_check:
-  stage: prisma-check
-  image: node:20
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
-  script:
-    - npx prisma validate
-    - npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma
+# prisma_check:
+#   stage: prisma-check
+#   image: node:20
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
+#   script:
+#     - npx prisma validate
+#     - npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma
 
-test:
-  stage: test
-  needs: [eslint, generate]
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
-  script:
-    - npx prisma migrate dev --name migration
-    - npm test
-    - echo "$CI_REGISTRY"
-    - echo "$CI_REGISTRY_USER"
-    - echo "$CI_REGISTRY_PASSWORD"
-    - echo "$CI_REGISTRY_IMAGE"
-    - echo "$CI_COMMIT_REF_SLUG"
-  dependencies:
-    - generate
+# test:
+#   stage: test
+#   needs: [eslint, generate]
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
+#   script:
+#     - npx prisma migrate dev --name migration
+#     - npm test
+#     - echo "$CI_REGISTRY"
+#     - echo "$CI_REGISTRY_USER"
+#     - echo "$CI_REGISTRY_PASSWORD"
+#     - echo "$CI_REGISTRY_IMAGE"
+#     - echo "$CI_COMMIT_REF_SLUG"
+#   dependencies:
+#     - generate
 
-dependency_check:
-  stage: security
-  image: node:18
-  script:
-    - npm ci
-    - npm run deps:update
-    # - npm audit --production
-    # - npm outdated || true
-    - npm run deps:check || true
-  only:
-    - merge_requests
-    - main
-    - develop
-  allow_failure: true
+# dependency_check:
+#   stage: security
+#   image: node:18
+#   script:
+#     - npm ci
+#     - npm run deps:update
+#     # - npm audit --production
+#     # - npm outdated || true
+#     - npm run deps:check || true
+#   only:
+#     - merge_requests
+#     - main
+#     - develop
+#   allow_failure: true
 
 # docker_scan:
 #   stage: docker-scan
@@ -181,7 +181,7 @@ mirror_to_github:
   script:
     - git config --global user.email "flobertjohnson@gmail.com"
     - git config --global user.name "Flobert"
-    - git remote add github https://$GITHUB_TOKEN@github.com/JSFlobert170/SparkFit_Backend.git
+    - git remote add github https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/JSFlobert170/SparkFit_Backend.git
     - git push github HEAD:$CI_COMMIT_REF_NAME
 
 release:
