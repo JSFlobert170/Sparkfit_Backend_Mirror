@@ -175,7 +175,7 @@ cache:
 
 mirror_to_github:
   stage: mirror
-  image: alpine/git:2.36.2
+  image: alpine:latest
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop")'
     - if: '$CI_COMMIT_TAG'
@@ -184,6 +184,7 @@ mirror_to_github:
     GIT_DEPTH: '0'
     GIT_CHECKOUT: 'false'
   before_script:
+    - apk add --no-cache git
     - echo "Vérification des variables d'environnement..."
     - '[ -n "$GITHUB_USER" ] || { echo "❌ GITHUB_USER manquant dans les variables CI/CD"; exit 1; }'
     - '[ -n "$GITHUB_TOKEN" ] || { echo "❌ GITHUB_TOKEN manquant dans les variables CI/CD"; exit 1; }'
