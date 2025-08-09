@@ -188,28 +188,24 @@ mirror_to_github:
     - '[ -n "$GITHUB_USER" ] || { echo "❌ GITHUB_USER manquant dans les variables CI/CD"; exit 1; }'
     - '[ -n "$GITHUB_TOKEN" ] || { echo "❌ GITHUB_TOKEN manquant dans les variables CI/CD"; exit 1; }'
     - echo "✅ Variables GitHub configurées"
-    - echo "Branche actuelle: $CI_COMMIT_BRANCH"
-    - echo "Tag actuel: $CI_COMMIT_TAG"
-    - echo "SHA du commit: $CI_COMMIT_SHA"
+    - echo "Branche actuelle:" $CI_COMMIT_BRANCH
+    - echo "Tag actuel:" $CI_COMMIT_TAG
+    - echo "SHA du commit:" $CI_COMMIT_SHA
   script:
     - cd $CI_PROJECT_DIR
-    - echo "📂 Répertoire de travail: $(pwd)"
+    - echo "📂 Répertoire de travail:" $(pwd)
     - echo "📋 Contenu du répertoire:"
     - ls -la
-
     - echo "🔧 Configuration Git..."
     - git config --global user.name "GitLab CI"
     - git config --global user.email "ci@gitlab.com"
     - git config --global init.defaultBranch main
-
     - echo "🔗 Suppression et ajout du remote GitHub..."
     - git remote remove github 2>/dev/null || echo "Remote github n'existe pas encore"
     - git remote add github "https://$GITHUB_USER:$GITHUB_TOKEN@github.com/JSFlobert170/Sparkfit_Backend_Mirror.git"
     - git remote -v
-
     - echo "📥 Récupération des informations du dépôt GitHub..."
     - git fetch github --unshallow 2>/dev/null || git fetch github || echo "Première synchronisation"
-
     - |
       if [ -n "${CI_COMMIT_BRANCH:-}" ]; then
         echo "🌿 Synchronisation de la branche: $CI_COMMIT_BRANCH"
@@ -219,7 +215,6 @@ mirror_to_github:
         git push github "$CI_COMMIT_BRANCH" --force-with-lease=refs/heads/$CI_COMMIT_BRANCH:refs/remotes/github/$CI_COMMIT_BRANCH || git push github "$CI_COMMIT_BRANCH" --force
         echo "✅ Branche $CI_COMMIT_BRANCH synchronisée avec succès"
       fi
-
     - |
       if [ -n "${CI_COMMIT_TAG:-}" ]; then
         echo "🏷️  Synchronisation du tag: $CI_COMMIT_TAG"
@@ -229,7 +224,6 @@ mirror_to_github:
         git push github "refs/tags/$CI_COMMIT_TAG" --force-with-lease || git push github "refs/tags/$CI_COMMIT_TAG" --force
         echo "✅ Tag $CI_COMMIT_TAG synchronisé avec succès"
       fi
-
     - echo "🎉 Synchronisation terminée avec succès !"
   after_script:
     - echo "🧹 Nettoyage des credentials..."
