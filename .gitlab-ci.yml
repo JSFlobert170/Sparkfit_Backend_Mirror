@@ -149,7 +149,7 @@ cache:
 #     - if: '$CI_COMMIT_BRANCH == "develop"'
 #   script:
 #     - echo "Trigger Render staging deploy"
-#     - curl -X POST "https://api.render.com/deploy/srv-d215b3vfte5s73f3ajf0?key=u2qib-5adtk"
+#     - curl -X POST "https://api.render.com/deploy/$RENDER_SERVICE_ID?key=$RENDER_DEPLOY_KEY"
 
 # deploy:
 #   stage: deploy
@@ -158,7 +158,7 @@ cache:
 #     - if: '$CI_COMMIT_BRANCH == "main"'
 #   script:
 #     - echo "Trigger Render deploy"
-#     - curl -X POST "https://api.render.com/deploy/srv-d215b3vfte5s73f3ajf0?key=u2qib-5adtk"
+#     - curl -X POST "https://api.render.com/deploy/$RENDER_SERVICE_ID?key=$RENDER_DEPLOY_KEY"
 
 # rollback:
 #   stage: rollback
@@ -175,35 +175,66 @@ cache:
 
 mirror_to_github:
   stage: mirror
-  image: alpine:3.20
+  image: alpine/git:2.36.2
   rules:
-    # Push si on est sur main ou develop
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "develop"'
-    # Push si on est sur un tag
+    - if: '$CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop")'
     - if: '$CI_COMMIT_TAG'
   variables:
+    GIT_STRATEGY: clone
     GIT_DEPTH: '0'
+    GIT_CHECKOUT: 'false'
+  before_script:
+    - echo "Vérification des variables d'environnement..."
+    - '[ -n "$GITHUB_USER" ] || { echo "❌ GITHUB_USER manquant dans les variables CI/CD"; exit 1; }'
+    - '[ -n "$GITHUB_TOKEN" ] || { echo "❌ GITHUB_TOKEN manquant dans les variables CI/CD"; exit 1; }'
+    - echo "✅ Variables GitHub configurées"
+    - echo "Branche actuelle: $CI_COMMIT_BRANCH"
+    - echo "Tag actuel: $CI_COMMIT_TAG"
+    - echo "SHA du commit: $CI_COMMIT_SHA"
   script:
-    - set -euo pipefail
-    - apk add --no-cache git
-    - '[ -n "$GITHUB_USER" ] || { echo "GITHUB_USER missing"; exit 1; }'
-    - '[ -n "$GITHUB_TOKEN" ] || { echo "GITHUB_TOKEN missing"; exit 1; }'
+    - cd $CI_PROJECT_DIR
+    - echo "📂 Répertoire de travail: $(pwd)"
+    - echo "📋 Contenu du répertoire:"
+    - ls -la
 
-    - git remote remove github || true
+    - echo "🔧 Configuration Git..."
+    - git config --global user.name "GitLab CI"
+    - git config --global user.email "ci@gitlab.com"
+    - git config --global init.defaultBranch main
+
+    - echo "🔗 Suppression et ajout du remote GitHub..."
+    - git remote remove github 2>/dev/null || echo "Remote github n'existe pas encore"
     - git remote add github "https://$GITHUB_USER:$GITHUB_TOKEN@github.com/JSFlobert170/Sparkfit_Backend_Mirror.git"
+    - git remote -v
 
-    # Cas branche
-    - if [ -n "${CI_COMMIT_BRANCH:-}" ]; then
-      git fetch github "refs/heads/$CI_COMMIT_BRANCH" || true;
-      git push github "HEAD:refs/heads/$CI_COMMIT_BRANCH" --force-with-lease;
+    - echo "📥 Récupération des informations du dépôt GitHub..."
+    - git fetch github --unshallow 2>/dev/null || git fetch github || echo "Première synchronisation"
+
+    - |
+      if [ -n "${CI_COMMIT_BRANCH:-}" ]; then
+        echo "🌿 Synchronisation de la branche: $CI_COMMIT_BRANCH"
+        echo "📍 Positionnement sur la branche locale..."
+        git checkout -B "$CI_COMMIT_BRANCH" "$CI_COMMIT_SHA"
+        echo "📤 Push vers GitHub..."
+        git push github "$CI_COMMIT_BRANCH" --force-with-lease=refs/heads/$CI_COMMIT_BRANCH:refs/remotes/github/$CI_COMMIT_BRANCH || git push github "$CI_COMMIT_BRANCH" --force
+        echo "✅ Branche $CI_COMMIT_BRANCH synchronisée avec succès"
       fi
 
-    # Cas tag
-    - if [ -n "${CI_COMMIT_TAG:-}" ]; then
-      git fetch github "refs/tags/$CI_COMMIT_TAG" || true;
-      git push github "refs/tags/$CI_COMMIT_TAG:refs/tags/$CI_COMMIT_TAG" --force-with-lease;
+    - |
+      if [ -n "${CI_COMMIT_TAG:-}" ]; then
+        echo "🏷️  Synchronisation du tag: $CI_COMMIT_TAG"
+        echo "📍 Positionnement sur le tag..."
+        git checkout "$CI_COMMIT_TAG"
+        echo "📤 Push du tag vers GitHub..."
+        git push github "refs/tags/$CI_COMMIT_TAG" --force-with-lease || git push github "refs/tags/$CI_COMMIT_TAG" --force
+        echo "✅ Tag $CI_COMMIT_TAG synchronisé avec succès"
       fi
+
+    - echo "🎉 Synchronisation terminée avec succès !"
+  after_script:
+    - echo "🧹 Nettoyage des credentials..."
+    - git remote remove github 2>/dev/null || true
+  allow_failure: false
 
 release:
   stage: release
