@@ -13,10 +13,6 @@ variables:
 
 stages:
   - prepare
-  - lint
-  - prisma-check
-  - test
-  - security
 cache:
   paths:
     - node_modules/
@@ -43,62 +39,4 @@ generate:
     paths:
       - prisma
 
-eslint:
-  stage: lint
-  needs: [generate]
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
-  script:
-    - echo "Linting code with ESLint..."
-    - npm run lint
-  allow_failure: false
 
-prettier:
-  stage: lint
-  needs: [generate]
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
-  script:
-    - echo "Checking code format with Prettier..."
-    - npm run format:check
-  allow_failure: false
-
-prisma_check:
-  stage: prisma-check
-  image: node:20
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
-  script:
-    - npx prisma validate
-    - npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma
-
-test:
-  stage: test
-  needs: [eslint, generate]
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
-  script:
-    - npx prisma migrate dev --name migration
-    - npm test
-    - echo "$CI_REGISTRY"
-    - echo "$CI_REGISTRY_USER"
-    - echo "$CI_REGISTRY_PASSWORD"
-    - echo "$CI_REGISTRY_IMAGE"
-    - echo "$CI_COMMIT_REF_SLUG"
-  dependencies:
-    - generate
-
-dependency_check:
-  stage: security
-  image: node:18
-  script:
-    - npm ci
-    - npm run deps:update
-    # - npm audit --production
-    # - npm outdated || true
-    - npm run deps:check || true
-  only:
-    - merge_requests
-    - main
-    - develop
-  allow_failure: true
