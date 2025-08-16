@@ -20,3 +20,6 @@ npx prisma migrate reset
 ```
 npx prisma studio
 ```
+
+
+test de mirror avec github
